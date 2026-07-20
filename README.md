@@ -122,6 +122,16 @@ powershell -ExecutionPolicy Bypass -File scripts\smoke-windows.ps1
 
 The smoke suite starts WinYOLO on a temporary port, verifies loopback health and hostile-Origin rejection, performs native inspection, and confirms the protected-root fixture stops before execution.
 
+An always-on Linux relay can deploy and verify the project when the Windows PC wakes:
+
+```sh
+WINYOLO_WINDOWS_HOST=windows-host-or-ip \
+WINYOLO_WINDOWS_USER=windows-ssh-user \
+bun run deploy:windows --wait
+```
+
+The relay uses native Windows OpenSSH only for transport. WinYOLO itself and its smoke suite execute on the PC with Bun, PowerShell, and cmd—never WSL.
+
 ## Configuration
 
 | Variable | Default | Meaning |
