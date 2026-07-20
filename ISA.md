@@ -3,11 +3,11 @@ task: "Build and deploy WinYOLO Windows automation control plane"
 project: WinYOLO
 effort: advanced
 effort_source: auto
-phase: execute
-progress: 0/36
+phase: verify
+progress: 29/36
 mode: unattended
 started: 2026-07-19T22:30:00-04:00
-updated: 2026-07-20T09:20:00-04:00
+updated: 2026-07-20T09:30:00-04:00
 ---
 
 ## Problem
@@ -48,42 +48,42 @@ Ship a testable Windows-resident WinYOLO service that completes a GPT-5.6 tool l
 
 ## Criteria
 
-- [ ] ISC-1: `bun install` exits 0 from a fresh checkout.
-- [ ] ISC-2: `bun run typecheck` emits zero TypeScript errors.
-- [ ] ISC-3: `bun test` exits 0.
-- [ ] ISC-4: `GET /health` returns HTTP 200 and `status: ok`.
-- [ ] ISC-5: The server listens only on the configured loopback host by default.
-- [ ] ISC-6: An unexpected browser `Origin` receives HTTP 403.
-- [ ] ISC-7: `POST /api/runs` creates one run and returns its identifier.
-- [ ] ISC-8: A second active run receives HTTP 409.
-- [ ] ISC-9: `GET /api/runs/:id` returns status, events, and pending approval.
-- [ ] ISC-10: Server-sent events stream run updates to a connected dashboard.
-- [ ] ISC-11: Run transitions are appended to a JSONL receipt on disk.
-- [ ] ISC-12: Persisted receipts redact OpenAI-style API keys.
-- [ ] ISC-13: OpenAI provider defaults to model `gpt-5.6`.
-- [ ] ISC-14: OpenAI tool definitions use strict JSON schemas.
-- [ ] ISC-15: Function-call outputs preserve the model-provided `call_id`.
-- [ ] ISC-16: Agent runs stop at the configured maximum tool-step count.
+- [x] ISC-1: `bun install` exits 0 from a fresh checkout.
+- [x] ISC-2: `bun run typecheck` emits zero TypeScript errors.
+- [x] ISC-3: `bun test` exits 0.
+- [x] ISC-4: `GET /health` returns HTTP 200 and `status: ok`.
+- [x] ISC-5: The server listens only on the configured loopback host by default.
+- [x] ISC-6: An unexpected browser `Origin` receives HTTP 403.
+- [x] ISC-7: `POST /api/runs` creates one run and returns its identifier.
+- [x] ISC-8: A second active run receives HTTP 409.
+- [x] ISC-9: `GET /api/runs/:id` returns status, events, and pending approval.
+- [x] ISC-10: Server-sent events stream run updates to a connected dashboard.
+- [x] ISC-11: Run transitions are appended to a JSONL receipt on disk.
+- [x] ISC-12: Persisted receipts redact OpenAI-style API keys.
+- [x] ISC-13: OpenAI provider defaults to model `gpt-5.6`.
+- [x] ISC-14: OpenAI tool definitions use strict JSON schemas.
+- [x] ISC-15: Function-call outputs preserve the model-provided `call_id`.
+- [x] ISC-16: Agent runs stop at the configured maximum tool-step count.
 - [ ] ISC-17: Shell output is bounded by the configured byte limit.
 - [ ] ISC-18: Timed-out shell processes return a structured timeout result.
-- [ ] ISC-19: PowerShell launches without `shell: true`.
-- [ ] ISC-20: Windows PowerShell scripts use UTF-16LE `-EncodedCommand` transport.
-- [ ] ISC-21: `wsl`, `bash`, and `\\wsl$` shell requests are rejected.
-- [ ] ISC-22: Recognized destructive commands receive a high-risk label.
-- [ ] ISC-23: Recognized destructive protected-root commands pause for confirmation.
-- [ ] ISC-24: Unknown-target destructive commands pause for confirmation.
-- [ ] ISC-25: Incorrect confirmation text cannot resume an action.
-- [ ] ISC-26: Correct confirmation text resumes the exact bound action.
-- [ ] ISC-27: UNC and Windows device namespaces are blocked by default.
+- [x] ISC-19: PowerShell launches without `shell: true`.
+- [x] ISC-20: Windows PowerShell scripts use UTF-16LE `-EncodedCommand` transport.
+- [x] ISC-21: `wsl`, `bash`, and `\\wsl$` shell requests are rejected.
+- [x] ISC-22: Recognized destructive commands receive a high-risk label.
+- [x] ISC-23: Recognized destructive protected-root commands pause for confirmation.
+- [x] ISC-24: Unknown-target destructive commands pause for confirmation.
+- [x] ISC-25: Incorrect confirmation text cannot resume an action.
+- [x] ISC-26: Correct confirmation text resumes the exact bound action.
+- [x] ISC-27: UNC and Windows device namespaces are blocked by default.
 - [ ] ISC-28: Dashboard displays task, status, risk, command, output, and approval state.
 - [ ] ISC-29: CLI `doctor` reports OS, Bun, PowerShell, Codex, key, and loopback readiness.
 - [ ] ISC-30: CLI `demo` exercises native inspection without an API key.
-- [ ] ISC-31: Codex CLI provider produces decisions through the canonical tool authority.
-- [ ] ISC-32: MCP tools call the same executor and policy engine as HTTP runs.
-- [ ] ISC-33: Codex plugin manifest validates and references its real skill and MCP file.
+- [x] ISC-31: Codex CLI provider produces decisions through the canonical tool authority.
+- [x] ISC-32: MCP tools call the same executor and policy engine as HTTP runs.
+- [x] ISC-33: Codex plugin manifest validates and references its real skill and MCP file.
 - [ ] ISC-34: Windows install script creates a runnable local launcher without elevation.
 - [ ] ISC-35: Windows smoke script verifies health, native inspection, and advisory policy fixtures.
-- [ ] ISC-36: Anti: no runtime code invokes WSL or requires a Linux subsystem.
+- [x] ISC-36: Anti: no runtime code invokes WSL or requires a Linux subsystem.
 
 ## Test Strategy
 
@@ -112,3 +112,12 @@ Ship a testable Windows-resident WinYOLO service that completes a GPT-5.6 tool l
 - 2026-07-19 22:30: Reframed the project as an auditable Windows automation control plane because current Codex already runs natively on Windows; observability, receipts, and policy checkpoints are the differentiators.
 - 2026-07-19 22:30: Raw PowerShell remains available per the requested YOLO mode. Protected-root detection is explicitly advisory because arbitrary PowerShell can evade static analysis.
 - 2026-07-19 22:30: Core Responses API execution is the critical path. Codex CLI and plugin are thin alternate planning/transport surfaces over the same authority and cannot own direct execution.
+
+## Verification Evidence
+
+- Local and server: frozen Bun install, TypeScript check, 30 deterministic tests, and plugin validator all exit 0.
+- Live localhost: health 200, hostile Origin 403, dashboard assets, run creation/failure events, MCP initialization, and canonical MCP tool listing verified.
+- Codex: a real `codex exec` structured decision returned the requested final answer after strict-schema correction.
+- Plugin: Codex 0.144.5 accepted the local marketplace and installed `winyolo@winyolo-local` on the server.
+- Windows relay: PID and log are active on the server, polling the configured PC every 30 seconds for up to 12 hours.
+- Pending native-PC evidence: ISC-17, ISC-18, ISC-28, ISC-29, ISC-30, ISC-34, and ISC-35 remain unchecked until the currently offline Windows host runs `scripts/smoke-windows.ps1` and the dashboard can be inspected in real Chrome.
