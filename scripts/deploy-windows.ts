@@ -85,7 +85,7 @@ async function ensureBun(): Promise<void> {
 }
 
 async function verify(): Promise<void> {
-  const prefix = `cmd /d /s /c "set PATH=%USERPROFILE%\\.bun\\bin;%PATH%&& cd /d ${destination}&&`;
+  const prefix = `cmd /d /s /c "set PATH=%USERPROFILE%\\.bun\\bin;%PATH%&& cd /d "${destination}"&&`;
   assertOk("WinYOLO install", await ssh(`${prefix} powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\install.ps1"`));
   const smoke = await ssh(`${prefix} powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\smoke-windows.ps1"`);
   process.stdout.write(smoke.stdout);
