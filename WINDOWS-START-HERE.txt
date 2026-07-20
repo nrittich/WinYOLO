@@ -1,0 +1,50 @@
+WinYOLO — Windows Quick Start
+==============================
+
+Project folder
+--------------
+C:\Users\NickT\AI\Project\WinYOLO
+
+Open PowerShell and run:
+
+  cd C:\Users\NickT\AI\Project\WinYOLO
+
+Choose one model path
+---------------------
+
+Option A — Codex planner
+
+  codex login
+  .\winyolo.cmd serve
+
+Option B — GPT-5.6 Responses API
+
+  $env:OPENAI_API_KEY = "your-openai-api-key"
+  .\winyolo.cmd serve
+
+Then open this address in your browser:
+
+  http://127.0.0.1:4747
+
+Useful commands
+---------------
+
+  .\winyolo.cmd doctor
+  .\winyolo.cmd demo
+  powershell -NoProfile -ExecutionPolicy Bypass -File scripts\smoke-windows.ps1
+
+What is already installed and verified
+--------------------------------------
+
+- Bun 1.3.14
+- Codex CLI 0.144.6
+- WinYOLO Codex plugin (winyolo@winyolo-local)
+- Native Windows smoke suite: passing
+
+Important
+---------
+
+- Codex is installed but needs `codex login` before using its planner.
+- GPT-5.6 needs OPENAI_API_KEY before using the API provider.
+- WinYOLO stays local at 127.0.0.1 and does not use WSL.
+- High-risk actions pause in the dashboard for exact local confirmation.
