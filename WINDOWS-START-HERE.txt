@@ -9,6 +9,23 @@ Open PowerShell and run:
 
   cd C:\Users\NickT\AI\Project\WinYOLO
 
+If PowerShell says Bun is not recognized
+----------------------------------------
+
+The PowerShell window was probably opened before Bun was installed. Either
+close it and open a new PowerShell window, or refresh PATH in the current one:
+
+  $env:Path = [Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [Environment]::GetEnvironmentVariable("Path", "User")
+  bun --version
+
+Expected result:
+
+  1.3.14
+
+Absolute-path fallback:
+
+  & "$env:USERPROFILE\.bun\bin\bun.exe" --version
+
 Choose one model path
 ---------------------
 
