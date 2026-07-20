@@ -126,7 +126,7 @@ export function createServer(config: AppConfig, manager = new RunManager(config)
         const cwd = String(input.cwd ?? config.defaultCwd);
         try {
           const managed = await manager.executeTool({ call, cwd, source: "http" });
-          return json({ ok: managed.result.ok, ...managed }, managed.result.ok ? 200 : 409);
+          return json({ ok: managed.result.ok, ...managed });
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           return json({ ok: false, error: message }, message === "active_run_exists" ? 409 : 400);

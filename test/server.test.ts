@@ -147,4 +147,47 @@ describe("localhost server", () => {
     expect(executed).toHaveLength(1);
     expect(executed[0]!.arguments).toEqual(arguments_);
   });
+
+  test("returns structured tool failures without transport-level failure", async () => {
+    const config = testConfig({ port: 0 });
+    const assessment: PolicyAssessment = {
+      decision: "allow",
+      risk: "low",
+      reasons: ["Timeout fixture."],
+      targets: [],
+      protectedTargets: [],
+      fingerprint: "timeout-fixture",
+    };
+    const authority = {
+      assess: () => assessment,
+      execute: async (): Promise<ToolResult> => ({
+        ok: false,
+        tool: "win_shell",
+        timedOut: true,
+        error: "Command timed out after 250ms.",
+        assessment,
+      }),
+    };
+    const manager = new RunManager(
+      config,
+      { run: async () => "unused" } as any,
+      new EventJournal(config.dataDir),
+      authority,
+    );
+    const server = createServer(config, manager);
+    servers.push(server);
+
+    const response = await fetch(`http://127.0.0.1:${server.port}/api/tools/execute`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "win_shell",
+        arguments: { shell: "powershell", script: "Start-Sleep 5" },
+      }),
+    });
+    expect(response.status).toBe(200);
+    const body = await response.json() as any;
+    expect(body.ok).toBe(false);
+    expect(body.result.timedOut).toBe(true);
+  });
 });
