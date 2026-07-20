@@ -70,6 +70,14 @@ try {
       (Invoke-WebRequest "http://127.0.0.1:$Port/mcp" -Method Post -ContentType 'application/json' -Headers @{Accept='application/json, text/event-stream'} -Body $McpBody -UseBasicParsing).Content
     }
 
+    function ConvertFrom-WinYoloMcp($Content) {
+      $DataLine = @($Content -split "`r?`n" | Where-Object { $_ -like 'data: *' }) | Select-Object -Last 1
+      if (-not $DataLine) { throw "MCP response did not contain an SSE data event: $Content" }
+      $Envelope = $DataLine.Substring(6) | ConvertFrom-Json
+      if ($Envelope.error) { throw "MCP JSON-RPC error: $($Envelope.error | ConvertTo-Json -Compress)" }
+      $Envelope.result.content[0].text | ConvertFrom-Json
+    }
+
     $Fixture = Join-Path $env:TEMP 'winyolo-mcp-confirm-fixture.txt'
     Set-Content -LiteralPath $Fixture -Value 'delete only after exact MCP confirmation'
     $McpArguments = @{
@@ -101,26 +109,27 @@ try {
       if (-not (Test-Path -LiteralPath $Fixture)) { throw 'MCP action executed before confirmation.' }
 
       $Approval = $Pending.pendingApproval
-      $Wrong = Invoke-WinYoloMcp 101 'win_confirm' @{
+      $Wrong = ConvertFrom-WinYoloMcp (Invoke-WinYoloMcp 101 'win_confirm' @{
         run_id = $Pending.id
         approval_id = $Approval.id
         decision = 'approve'
         confirmation = 'CONFIRM WRONG'
-      }
-      if ($Wrong -notmatch 'approval_mismatch') { throw 'Incorrect MCP confirmation was not rejected.' }
+      })
+      if ($Wrong.ok -or $Wrong.error -ne 'approval_mismatch') { throw 'Incorrect MCP confirmation was not rejected.' }
       if (-not (Test-Path -LiteralPath $Fixture)) { throw 'Wrong MCP confirmation released the action.' }
 
-      $Exact = Invoke-WinYoloMcp 102 'win_confirm' @{
+      $Exact = ConvertFrom-WinYoloMcp (Invoke-WinYoloMcp 102 'win_confirm' @{
         run_id = $Pending.id
         approval_id = $Approval.id
         decision = 'approve'
         confirmation = $Approval.assessment.confirmationPhrase
-      }
-      if ($Exact -notmatch '\"ok\":true') { throw 'Exact MCP confirmation was not accepted.' }
+      })
+      if (-not $Exact.ok) { throw 'Exact MCP confirmation was not accepted.' }
       Wait-Job $McpJob -Timeout 10 | Out-Null
       if ($McpJob.State -ne 'Completed') { throw 'Confirmed MCP action did not complete.' }
       $McpResult = Receive-Job $McpJob | Out-String
-      if ($McpResult -notmatch '\"ok\":true') { throw "Confirmed MCP action failed: $McpResult" }
+      $Managed = ConvertFrom-WinYoloMcp $McpResult
+      if (-not $Managed.result.ok) { throw "Confirmed MCP action failed: $McpResult" }
       if (Test-Path -LiteralPath $Fixture) { throw 'Confirmed MCP action did not execute its bound call.' }
 
       $Completed = (Invoke-RestMethod "http://127.0.0.1:$Port/api/runs/$($Pending.id)").run
