@@ -8,7 +8,7 @@ progress: 37/40
 mode: unattended
 iteration: 2
 started: 2026-07-19T22:30:00-04:00
-updated: 2026-07-20T11:01:00-04:00
+updated: 2026-07-20T11:07:00-04:00
 ---
 
 ## Problem
@@ -119,13 +119,20 @@ Ship a testable Windows-resident WinYOLO service that completes a GPT-5.6 tool l
 - 2026-07-19 22:30: Core Responses API execution is the critical path. Codex CLI and plugin are thin alternate planning/transport surfaces over the same authority and cannot own direct execution.
 - 2026-07-20 10:56: refined: Independent QA refuted the assumption that shared `ToolAuthority` alone satisfied MCP integration; MCP must also share RunManager approval state and receipts. Authenticated Windows provider probes are now explicit deferred criteria rather than implied by harness smoke tests.
 
+## Changelog
+
+- 2026-07-20 | conjectured: Passing native tool smoke tests and sharing `ToolAuthority` meant HTTP, MCP, dashboard, and plugin behavior could not diverge.
+  refuted by: Independent QA showed MCP bypassed `RunManager`, exposed no dashboard pending approval, and lacked the promised `win_confirm` path.
+  learned: A single execution authority includes policy, immutable call binding, pending approval state, confirmation consumption, execution, and receipts—not merely a shared executor instance.
+  criterion now: Refined ISC-32 and added ISC-32.1/ISC-32.2 for the complete MCP confirmation loop; added ISC-13.1/ISC-31.1 so authenticated Windows model execution cannot be implied by harness-only smoke tests.
+
 ## Verification
 
-- Local and server: frozen Bun install, TypeScript check, 30 deterministic tests, and plugin validator all exit 0.
+- Local and server: frozen Bun install, TypeScript check, 34 deterministic tests, and plugin validator all exit 0.
 - Live localhost: health 200, hostile Origin 403, dashboard assets, run creation/failure events, MCP initialization, and canonical MCP tool listing verified.
 - Codex: a real `codex exec` structured decision returned the requested final answer after strict-schema correction.
 - Plugin: Codex 0.144.5 accepted the local marketplace and installed `winyolo@winyolo-local` on the server.
-- Windows relay: PID and log are active on the server, polling the configured PC every 30 seconds for up to 12 hours.
+- Windows relay: the polling process detected the powered-on PC, deployed successfully, and exited after `WINYOLO_WINDOWS_DEPLOY_OK`.
 - 2026-07-20 initial state: native-PC evidence was pending while the configured Windows host was powered down; the unattended relay later completed after the host came online.
 - ISC-17: native Windows smoke — a 4096-character PowerShell result was capped at 256 bytes and returned `truncated: true`.
 - ISC-18: native Windows smoke — `Start-Sleep -Seconds 5` with `timeout_ms: 250` returned `timedOut: true`.
@@ -133,7 +140,7 @@ Ship a testable Windows-resident WinYOLO service that completes a GPT-5.6 tool l
 - ISC-29: native CLI probe — `winyolo.cmd doctor` reported win32 10.0.19045, Bun 1.3.14, PowerShell, Codex 0.144.6 path, missing API key, loopback, and data directory.
 - ISC-30: native CLI probe — `winyolo.cmd demo` returned `ok: true` CIM data for DESKTOP-U1J1HF8 and a high-risk protected-root confirmation fixture.
 - ISC-34: native install/launcher probe — `scripts\\install.ps1` exited 0 and the resulting `winyolo.cmd doctor` and `winyolo.cmd demo` both ran successfully from a fresh SSH shell.
-- ISC-35: native Windows smoke — 30 tests passed and the script printed `WINYOLO_WINDOWS_SMOKE_OK` twice, once through the relay and once from a fresh SSH session.
+- ISC-35: native Windows smoke — 34 tests passed and the script printed `WINYOLO_WINDOWS_SMOKE_OK` across direct and relay-driven verification runs; see `docs/evidence/windows-smoke-2026-07-20.md`.
 - ISC-13.1: deferred authenticated-provider probe — FOLLOWUP-WINYOLO-AUTH-1 requires an OpenAI API key on the Windows host; current failure is explicit: `OPENAI_API_KEY is required for provider 'openai'.`
 - ISC-31.1: deferred authenticated-provider probe — FOLLOWUP-WINYOLO-AUTH-2 requires `codex login` on the Windows host; Codex CLI 0.144.6 currently reports `Not logged in`.
 - ISC-32: Windows MCP/HTTP integration probe — all direct tools now create RunManager-owned receipt runs; local, server, and Windows suites pass with 34 tests.

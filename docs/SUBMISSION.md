@@ -29,7 +29,7 @@ AI developer agents can execute powerful local commands, but Windows operators l
 - [ ] `/feedback` Codex session ID for the core build session
 - [x] Notes explaining where Codex accelerated implementation and key human decisions
 - [x] Test instructions that do not require rebuilding a hosted service
-- [x] Final Windows smoke receipt attached or linked (`WINYOLO_WINDOWS_SMOKE_OK`, 2026-07-20)
+- [x] [Final Windows smoke receipt](evidence/windows-smoke-2026-07-20.md)
 
 ## Human decisions to highlight
 
