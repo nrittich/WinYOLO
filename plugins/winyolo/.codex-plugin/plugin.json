@@ -1,0 +1,26 @@
+{
+  "name": "winyolo",
+  "version": "0.1.0",
+  "description": "Operate a Windows PC through WinYOLO's visible, auditable native-command control plane.",
+  "author": {
+    "name": "WinYOLO Contributors"
+  },
+  "license": "MIT",
+  "keywords": ["windows", "powershell", "automation", "developer-tools", "codex"],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "WinYOLO",
+    "shortDescription": "Visible Windows-native agent execution",
+    "longDescription": "Inspect and operate Windows through a localhost control plane with native PowerShell tools, risk explanations, confirmations, and replayable receipts.",
+    "developerName": "WinYOLO Contributors",
+    "category": "Developer Tools",
+    "capabilities": ["Interactive", "Read", "Write"],
+    "defaultPrompt": [
+      "Inspect my Windows developer environment.",
+      "Diagnose a native Windows process or port issue.",
+      "Run this task through the WinYOLO receipt."
+    ],
+    "brandColor": "#B7FF4A"
+  }
+}

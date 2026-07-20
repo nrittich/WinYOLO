@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <title>WinYOLO — Windows execution, made visible</title>
+    <link rel="stylesheet" href="/app.css">
+  </head>
+  <body>
+    <header>
+      <div class="brand"><span class="mark">WY</span><div><strong>WinYOLO</strong><small>Windows execution, made visible</small></div></div>
+      <div id="health" class="pill muted">checking service</div>
+    </header>
+    <main>
+      <section class="hero">
+        <p class="eyebrow">GPT-5.6 × native PowerShell</p>
+        <h1>Move fast. See everything.</h1>
+        <p class="lede">An auditable Windows automation control plane with live commands, risk explanations, and replayable receipts.</p>
+        <form id="run-form">
+          <textarea id="task" required placeholder="Inspect this PC's developer setup, find anything broken, and recommend the next action."></textarea>
+          <div class="form-row">
+            <select id="provider" aria-label="Provider"><option value="openai">GPT-5.6 API</option><option value="codex">Codex CLI</option></select>
+            <input id="cwd" placeholder="Working directory (optional)">
+            <button type="submit">Run on Windows <span>→</span></button>
+          </div>
+        </form>
+      </section>
+      <section class="run-head">
+        <div><p class="eyebrow">Execution receipt</p><h2 id="run-title">No active run</h2></div>
+        <div id="run-status" class="status idle">idle</div>
+      </section>
+      <section id="approval" class="approval hidden">
+        <div><p class="eyebrow danger">High-risk checkpoint</p><h3>Local confirmation required</h3><p id="approval-reasons"></p><code id="approval-command"></code></div>
+        <div class="approval-actions"><input id="confirmation" autocomplete="off"><button id="approve">Confirm exact action</button><button id="reject" class="ghost">Reject</button></div>
+      </section>
+      <section id="timeline" class="timeline"><div class="empty">Run a task to create a live Windows execution receipt.</div></section>
+    </main>
+    <footer><span>Localhost only</span><span>Raw PowerShell is powerful; risk detection is advisory.</span></footer>
+    <script src="/app.js" defer></script>
+  </body>
+</html>
