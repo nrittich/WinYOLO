@@ -18,6 +18,8 @@ try {
 
   $env:WINYOLO_PORT = "$Port"
   $env:WINYOLO_DATA_DIR = $DataDir
+  $env:WINYOLO_COMMAND_TIMEOUT_MS = '2000'
+  $env:WINYOLO_MAX_OUTPUT_BYTES = '256'
   $Server = Start-Process bun -ArgumentList @('run','src/cli.ts','serve') -WorkingDirectory $ProjectRoot -PassThru -RedirectStandardOutput $ServerOut -RedirectStandardError $ServerErr
   try {
     $Healthy = $false
@@ -30,6 +32,33 @@ try {
     }
     if (-not $Healthy) { throw "Server did not become healthy. $((Get-Content $ServerErr -Raw -ErrorAction SilentlyContinue))" }
     if ($Health.platform -ne 'win32') { throw "Expected win32 health platform, got $($Health.platform)." }
+
+    function Invoke-WinYoloTool($Name, $Arguments) {
+      $Body = @{ name = $Name; arguments = $Arguments } | ConvertTo-Json -Depth 8
+      Invoke-RestMethod "http://127.0.0.1:$Port/api/tools/execute" -Method Post -ContentType 'application/json' -Body $Body
+    }
+
+    $Inspection = Invoke-WinYoloTool 'win_system_inspect' @{ area = 'summary' }
+    if (-not $Inspection.result.ok) { throw "Native Windows inspection failed: $($Inspection.result.error)" }
+
+    $Output = Invoke-WinYoloTool 'win_shell' @{
+      shell = 'powershell'
+      script = "'x' * 4096"
+      cwd = $null
+      timeout_ms = 1000
+      reason = 'Verify bounded output.'
+    }
+    if (-not $Output.result.truncated) { throw 'Large PowerShell output was not marked truncated.' }
+    if ($Output.result.stdout.Length -gt 256) { throw 'Captured PowerShell output exceeded its byte cap.' }
+
+    $Timeout = Invoke-WinYoloTool 'win_shell' @{
+      shell = 'powershell'
+      script = 'Start-Sleep -Seconds 5'
+      cwd = $null
+      timeout_ms = 250
+      reason = 'Verify command timeout.'
+    }
+    if (-not $Timeout.result.timedOut) { throw 'Slow PowerShell command did not return a timeout result.' }
 
     $Demo = bun run src/cli.ts demo 2>&1 | Out-String
     if ($LASTEXITCODE -ne 0) { throw "Demo failed: $Demo" }
