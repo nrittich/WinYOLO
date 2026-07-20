@@ -3,12 +3,12 @@ task: "Build and deploy WinYOLO Windows automation control plane"
 project: WinYOLO
 effort: advanced
 effort_source: auto
-phase: execute
-progress: 34/40
+phase: verify
+progress: 37/40
 mode: unattended
 iteration: 2
 started: 2026-07-19T22:30:00-04:00
-updated: 2026-07-20T10:56:00-04:00
+updated: 2026-07-20T11:01:00-04:00
 ---
 
 ## Problem
@@ -82,9 +82,9 @@ Ship a testable Windows-resident WinYOLO service that completes a GPT-5.6 tool l
 - [x] ISC-30: CLI `demo` exercises native inspection without an API key.
 - [x] ISC-31: Codex CLI provider produces decisions through the canonical tool authority.
 - [DEFERRED-VERIFY] ISC-31.1: The Windows Codex provider completes an authenticated planning decision.
-- [ ] ISC-32: MCP tools call the same executor, policy, approval, and receipt authority as HTTP runs.
-- [ ] ISC-32.1: A high-risk MCP call creates dashboard-visible pending approval and resumes the exact bound call after confirmation.
-- [ ] ISC-32.2: MCP exposes `win_confirm` for exact approval or rejection without creating another execution authority.
+- [x] ISC-32: MCP tools call the same executor, policy, approval, and receipt authority as HTTP runs.
+- [x] ISC-32.1: A high-risk MCP call creates dashboard-visible pending approval and resumes the exact bound call after confirmation.
+- [x] ISC-32.2: MCP exposes `win_confirm` for exact approval or rejection without creating another execution authority.
 - [x] ISC-33: Codex plugin manifest validates and references its real skill and MCP file.
 - [x] ISC-34: Windows install script creates a runnable local launcher without elevation.
 - [x] ISC-35: Windows smoke script verifies health, native inspection, and advisory policy fixtures.
@@ -136,3 +136,6 @@ Ship a testable Windows-resident WinYOLO service that completes a GPT-5.6 tool l
 - ISC-35: native Windows smoke — 30 tests passed and the script printed `WINYOLO_WINDOWS_SMOKE_OK` twice, once through the relay and once from a fresh SSH session.
 - ISC-13.1: deferred authenticated-provider probe — FOLLOWUP-WINYOLO-AUTH-1 requires an OpenAI API key on the Windows host; current failure is explicit: `OPENAI_API_KEY is required for provider 'openai'.`
 - ISC-31.1: deferred authenticated-provider probe — FOLLOWUP-WINYOLO-AUTH-2 requires `codex login` on the Windows host; Codex CLI 0.144.6 currently reports `Not logged in`.
+- ISC-32: Windows MCP/HTTP integration probe — all direct tools now create RunManager-owned receipt runs; local, server, and Windows suites pass with 34 tests.
+- ISC-32.1: native Windows MCP probe — a safe temporary-file action became `awaiting_confirmation`, rejected `CONFIRM WRONG`, accepted the manager nonce, deleted only the bound fixture, and recorded `approval.required`, `approval.accepted`, `tool.completed`, and `run.completed`.
+- ISC-32.2: MCP schema and native call probe — `tools/list` contains MCP-only `win_confirm`, OpenAI `TOOL_DEFINITIONS` excludes it, and Windows smoke completed approval through the control tool.

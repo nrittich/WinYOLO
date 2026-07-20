@@ -107,9 +107,12 @@ The repository contains a local Codex marketplace and plugin at `plugins/winyolo
 ```powershell
 codex plugin marketplace add .
 codex plugin add winyolo@winyolo-local
+codex login
 ```
 
 Start a new Codex thread after installation, then ask: `Use WinYOLO to inspect my Windows developer environment.`
+
+`codex login` is an operator prerequisite for the Codex planner path. Alternatively, set `OPENAI_API_KEY` for the primary GPT-5.6 Responses API path. WinYOLO reports either missing credential explicitly; it never copies authentication between machines.
 
 The plugin deliberately cannot auto-confirm a dangerous action. Open the dashboard to review those actions locally.
 High-risk MCP calls remain pending while the dashboard displays the bound call. The MCP-only `win_confirm` control tool can release or reject that pending call using its run ID, approval ID, and exact locally displayed phrase; it cannot accept replacement command arguments.

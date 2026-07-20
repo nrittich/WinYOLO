@@ -25,11 +25,11 @@ AI developer agents can execute powerful local commands, but Windows operators l
 - [ ] Public repository URL and MIT license
 - [ ] README setup instructions verified from a fresh Windows checkout
 - [ ] Public YouTube demo under three minutes
-- [ ] Project description and Developer Tools category
+- [x] Project description and Developer Tools category
 - [ ] `/feedback` Codex session ID for the core build session
-- [ ] Notes explaining where Codex accelerated implementation and key human decisions
-- [ ] Test instructions that do not require rebuilding a hosted service
-- [ ] Final Windows smoke receipt attached or linked
+- [x] Notes explaining where Codex accelerated implementation and key human decisions
+- [x] Test instructions that do not require rebuilding a hosted service
+- [x] Final Windows smoke receipt attached or linked (`WINYOLO_WINDOWS_SMOKE_OK`, 2026-07-20)
 
 ## Human decisions to highlight
 
