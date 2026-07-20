@@ -60,6 +60,80 @@ try {
     }
     if (-not $Timeout.result.timedOut) { throw 'Slow PowerShell command did not return a timeout result.' }
 
+    function Invoke-WinYoloMcp($Id, $Name, $Arguments) {
+      $McpBody = @{
+        jsonrpc = '2.0'
+        id = $Id
+        method = 'tools/call'
+        params = @{ name = $Name; arguments = $Arguments }
+      } | ConvertTo-Json -Depth 10
+      (Invoke-WebRequest "http://127.0.0.1:$Port/mcp" -Method Post -ContentType 'application/json' -Headers @{Accept='application/json, text/event-stream'} -Body $McpBody -UseBasicParsing).Content
+    }
+
+    $Fixture = Join-Path $env:TEMP 'winyolo-mcp-confirm-fixture.txt'
+    Set-Content -LiteralPath $Fixture -Value 'delete only after exact MCP confirmation'
+    $McpArguments = @{
+      shell = 'powershell'
+      script = "Invoke-Expression `"Remove-Item '$Fixture' -Force`""
+      cwd = $null
+      timeout_ms = 1000
+      reason = 'Verify dashboard-visible MCP confirmation and bound-call resumption.'
+    }
+    $McpBody = @{
+      jsonrpc = '2.0'
+      id = 100
+      method = 'tools/call'
+      params = @{ name = 'win_shell'; arguments = $McpArguments }
+    } | ConvertTo-Json -Depth 10
+    $McpJob = Start-Job -ArgumentList "http://127.0.0.1:$Port/mcp", $McpBody -ScriptBlock {
+      param($Url, $Body)
+      (Invoke-WebRequest $Url -Method Post -ContentType 'application/json' -Headers @{Accept='application/json, text/event-stream'} -Body $Body -UseBasicParsing).Content
+    }
+    try {
+      $Pending = $null
+      foreach ($Attempt in 1..100) {
+        Start-Sleep -Milliseconds 50
+        $Runs = Invoke-RestMethod "http://127.0.0.1:$Port/api/runs"
+        $Pending = @($Runs.runs | Where-Object status -eq 'awaiting_confirmation') | Select-Object -First 1
+        if ($Pending) { break }
+      }
+      if (-not $Pending) { throw 'MCP action did not create dashboard-visible pending approval.' }
+      if (-not (Test-Path -LiteralPath $Fixture)) { throw 'MCP action executed before confirmation.' }
+
+      $Approval = $Pending.pendingApproval
+      $Wrong = Invoke-WinYoloMcp 101 'win_confirm' @{
+        run_id = $Pending.id
+        approval_id = $Approval.id
+        decision = 'approve'
+        confirmation = 'CONFIRM WRONG'
+      }
+      if ($Wrong -notmatch 'approval_mismatch') { throw 'Incorrect MCP confirmation was not rejected.' }
+      if (-not (Test-Path -LiteralPath $Fixture)) { throw 'Wrong MCP confirmation released the action.' }
+
+      $Exact = Invoke-WinYoloMcp 102 'win_confirm' @{
+        run_id = $Pending.id
+        approval_id = $Approval.id
+        decision = 'approve'
+        confirmation = $Approval.assessment.confirmationPhrase
+      }
+      if ($Exact -notmatch '\"ok\":true') { throw 'Exact MCP confirmation was not accepted.' }
+      Wait-Job $McpJob -Timeout 10 | Out-Null
+      if ($McpJob.State -ne 'Completed') { throw 'Confirmed MCP action did not complete.' }
+      $McpResult = Receive-Job $McpJob | Out-String
+      if ($McpResult -notmatch '\"ok\":true') { throw "Confirmed MCP action failed: $McpResult" }
+      if (Test-Path -LiteralPath $Fixture) { throw 'Confirmed MCP action did not execute its bound call.' }
+
+      $Completed = (Invoke-RestMethod "http://127.0.0.1:$Port/api/runs/$($Pending.id)").run
+      if ($Completed.status -ne 'completed') { throw "Confirmed MCP run ended as $($Completed.status)." }
+      $EventTypes = @($Completed.events | ForEach-Object type)
+      foreach ($Expected in @('approval.required','approval.accepted','tool.completed','run.completed')) {
+        if ($EventTypes -notcontains $Expected) { throw "MCP receipt is missing $Expected." }
+      }
+    } finally {
+      Remove-Job $McpJob -Force -ErrorAction SilentlyContinue
+      Remove-Item -LiteralPath $Fixture -Force -ErrorAction SilentlyContinue
+    }
+
     $Demo = bun run src/cli.ts demo 2>&1 | Out-String
     if ($LASTEXITCODE -ne 0) { throw "Demo failed: $Demo" }
     if ($Demo -notmatch 'awaiting|confirm') { throw 'Demo did not surface the protected-root confirmation fixture.' }

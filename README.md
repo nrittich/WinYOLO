@@ -74,7 +74,7 @@ Open <http://127.0.0.1:4747>. The API key stays in the Bun process and is never 
 - Structured filesystem, process, and CIM-based system inspection tools.
 - Raw PowerShell YOLO mode with visible reasons and output.
 - One active run, bounded steps, bounded command output, and process timeouts.
-- Local action confirmation bound to the exact tool arguments and working directory hash.
+- Action confirmation binds the exact arguments, working directory, and run; direct HTTP/MCP approvals also use a manager-issued nonce.
 - Loopback-only HTTP service, Origin checking, server-side secrets, and redacted receipts.
 - SSE dashboard timeline and durable `.jsonl` run history.
 
@@ -97,7 +97,7 @@ Raw PowerShell can obscure intent through variables, child processes, encoded co
 | `GET` | `/api/runs/:id/events` | Server-sent event stream |
 | `POST` | `/api/runs/:id/approvals/:approvalId` | Approve or reject a pending action |
 | `GET` | `/api/tools` | Canonical tool schemas |
-| `POST` | `/api/tools/execute` | Direct safe-tool execution for local integrations |
+| `POST` | `/api/tools/execute` | Direct tool execution through the canonical run/approval path |
 | `POST` | `/mcp` | Streamable HTTP MCP transport |
 
 ## Codex plugin
@@ -112,6 +112,7 @@ codex plugin add winyolo@winyolo-local
 Start a new Codex thread after installation, then ask: `Use WinYOLO to inspect my Windows developer environment.`
 
 The plugin deliberately cannot auto-confirm a dangerous action. Open the dashboard to review those actions locally.
+High-risk MCP calls remain pending while the dashboard displays the bound call. The MCP-only `win_confirm` control tool can release or reject that pending call using its run ID, approval ID, and exact locally displayed phrase; it cannot accept replacement command arguments.
 
 ## Verification
 

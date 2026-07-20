@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { createServer } from "../src/server.ts";
 import { EventJournal } from "../src/journal.ts";
 import { RunManager } from "../src/run-manager.ts";
+import type { PolicyAssessment, ToolCall, ToolResult } from "../src/types.ts";
 import { testConfig } from "./helpers.ts";
 
 const servers: Bun.Server<undefined>[] = [];
@@ -70,5 +71,80 @@ describe("localhost server", () => {
     expect(detail.run.task).toBe("hold this run");
     expect(detail.run.events.length).toBeGreaterThanOrEqual(2);
     release();
+  });
+
+  test("routes direct HTTP tools through the dashboard approval path", async () => {
+    const config = testConfig({ port: 0 });
+    const executed: ToolCall[] = [];
+    const assess = (call: ToolCall): PolicyAssessment => ({
+      decision: "confirm",
+      risk: "high",
+      reasons: ["HTTP confirmation fixture."],
+      targets: ["c:\\windows\\fixture"],
+      protectedTargets: ["c:\\windows\\fixture"],
+      fingerprint: "http-bound-call",
+      confirmationPhrase: "CONFIRM POLICY",
+    });
+    const authority = {
+      assess,
+      execute: async (call: ToolCall): Promise<ToolResult> => {
+        executed.push(structuredClone(call));
+        return { ok: true, tool: call.name, data: { executed: true }, assessment: assess(call) };
+      },
+    };
+    const manager = new RunManager(
+      config,
+      { run: async () => "unused" } as any,
+      new EventJournal(config.dataDir),
+      authority,
+    );
+    const server = createServer(config, manager);
+    servers.push(server);
+    const base = `http://127.0.0.1:${server.port}`;
+    const arguments_ = {
+      action: "write",
+      path: "C:\\Windows\\fixture.txt",
+      content: "bound content",
+      destination: null,
+      recursive: false,
+    };
+
+    const execution = fetch(`${base}/api/tools/execute`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "win_filesystem", arguments: arguments_ }),
+    });
+    let pending: any;
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      const runs = await (await fetch(`${base}/api/runs`)).json() as any;
+      pending = runs.runs.find((run: any) => run.status === "awaiting_confirmation");
+      if (pending) break;
+      await Bun.sleep(5);
+    }
+    expect(pending.pendingApproval.call.arguments).toEqual(arguments_);
+    expect(executed).toHaveLength(0);
+
+    const wrong = await fetch(`${base}/api/runs/${pending.id}/approvals/${pending.pendingApproval.id}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ decision: "approve", confirmation: "CONFIRM WRONG" }),
+    });
+    expect(wrong.status).toBe(409);
+    expect(executed).toHaveLength(0);
+
+    const approved = await fetch(`${base}/api/runs/${pending.id}/approvals/${pending.pendingApproval.id}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        decision: "approve",
+        confirmation: pending.pendingApproval.assessment.confirmationPhrase,
+      }),
+    });
+    expect(approved.status).toBe(200);
+    const result = await execution;
+    expect(result.status).toBe(200);
+    expect((await result.json() as any).runId).toBe(pending.id);
+    expect(executed).toHaveLength(1);
+    expect(executed[0]!.arguments).toEqual(arguments_);
   });
 });

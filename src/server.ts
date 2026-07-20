@@ -2,7 +2,6 @@ import { join } from "node:path";
 import { platform } from "node:os";
 import type { AppConfig } from "./config.ts";
 import { isLoopbackHost } from "./config.ts";
-import { ToolAuthority } from "./executor.ts";
 import { RunManager } from "./run-manager.ts";
 import { TOOL_DEFINITIONS } from "./tools.ts";
 import { handleMcpRequest } from "./mcp-http.ts";
@@ -37,7 +36,6 @@ export function createServer(config: AppConfig, manager = new RunManager(config)
   if (!isLoopbackHost(config.host)) {
     throw new Error(`Refusing non-loopback bind '${config.host}'. WinYOLO v1 is local-only.`);
   }
-  const authority = new ToolAuthority(config);
   const dashboardDir = join(import.meta.dir, "dashboard");
 
   return Bun.serve({
@@ -50,7 +48,7 @@ export function createServer(config: AppConfig, manager = new RunManager(config)
       }
       if (url.pathname === "/mcp") {
         if (!allowedOrigin(request, config)) return json({ ok: false, error: "origin_forbidden" }, 403);
-        return handleMcpRequest(request, config, authority);
+        return handleMcpRequest(request, config, manager);
       }
 
       if (request.method === "GET" && url.pathname === "/health") {
@@ -126,8 +124,13 @@ export function createServer(config: AppConfig, manager = new RunManager(config)
           arguments: (input.arguments ?? {}) as Record<string, unknown>,
         };
         const cwd = String(input.cwd ?? config.defaultCwd);
-        const result = await authority.execute(call, cwd, false);
-        return json({ ok: result.ok, result }, result.error === "approval_required" ? 409 : 200);
+        try {
+          const managed = await manager.executeTool({ call, cwd, source: "http" });
+          return json({ ok: managed.result.ok, ...managed }, managed.result.ok ? 200 : 409);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          return json({ ok: false, error: message }, message === "active_run_exists" ? 409 : 400);
+        }
       }
 
       if (request.method === "GET" && (url.pathname === "/" || url.pathname === "/index.html")) {

@@ -2,8 +2,9 @@ import { randomUUID } from "node:crypto";
 import type { AppConfig } from "./config.ts";
 import { WinYoloAgent } from "./agent.ts";
 import { EventJournal } from "./journal.ts";
+import { ToolAuthority } from "./executor.ts";
 import { redactValue } from "./redact.ts";
-import type { ApprovalRequest, ProviderName, RunEvent, RunRecord } from "./types.ts";
+import type { ApprovalRequest, ProviderName, RunEvent, RunRecord, ToolCall, ToolResult } from "./types.ts";
 
 interface AgentRunner {
   run: WinYoloAgent["run"];
@@ -14,18 +15,35 @@ interface ApprovalWaiter {
   resolve: (approved: boolean) => void;
 }
 
+interface ToolExecutor {
+  assess: ToolAuthority["assess"];
+  execute: ToolAuthority["execute"];
+}
+
+export interface ManagedToolResult {
+  runId: string;
+  result: ToolResult;
+}
+
 export class RunManager {
   readonly #config: AppConfig;
   readonly #agent: AgentRunner;
   readonly #journal: EventJournal;
+  readonly #authority: ToolExecutor;
   readonly #runs = new Map<string, RunRecord>();
   readonly #waiters = new Map<string, ApprovalWaiter>();
   readonly #eventIds = new Map<string, number>();
 
-  constructor(config: AppConfig, agent: AgentRunner = new WinYoloAgent(config), journal = new EventJournal(config.dataDir)) {
+  constructor(
+    config: AppConfig,
+    agent: AgentRunner = new WinYoloAgent(config),
+    journal = new EventJournal(config.dataDir),
+    authority: ToolExecutor = new ToolAuthority(config),
+  ) {
     this.#config = config;
     this.#agent = agent;
     this.#journal = journal;
+    this.#authority = authority;
   }
 
   active(): RunRecord | undefined {
@@ -73,6 +91,12 @@ export class RunManager {
 
   async start(options: { task: string; provider?: ProviderName; cwd?: string }): Promise<RunRecord> {
     if (this.active()) throw new Error("active_run_exists");
+    const run = await this.#createRun(options);
+    void this.#execute(run);
+    return this.get(run.id)!;
+  }
+
+  async #createRun(options: { task: string; provider?: ProviderName; cwd?: string }): Promise<RunRecord> {
     const now = new Date().toISOString();
     const run: RunRecord = {
       id: randomUUID(),
@@ -86,8 +110,108 @@ export class RunManager {
     };
     this.#runs.set(run.id, run);
     await this.#emit(run, "run.created", "Run created.", { provider: run.provider, cwd: run.cwd });
-    void this.#execute(run);
-    return this.get(run.id)!;
+    return run;
+  }
+
+  async executeTool(options: {
+    call: ToolCall;
+    cwd?: string;
+    source: "mcp" | "http";
+  }): Promise<ManagedToolResult> {
+    if (this.active()) throw new Error("active_run_exists");
+
+    // Bind an immutable copy before assessment. Confirmation only releases this
+    // stored call; callers never get a second opportunity to replace arguments.
+    const call = structuredClone(options.call);
+    const cwd = options.cwd?.trim() || this.#config.defaultCwd;
+    const run = await this.#createRun({
+      task: `${options.source.toUpperCase()} tool: ${call.name}`,
+      provider: this.#config.provider,
+      cwd,
+    });
+    run.status = "running";
+    await this.#emit(run, "run.started", `${options.source.toUpperCase()} direct-tool run started.`, {
+      source: options.source,
+    });
+
+    const assessment = this.#authority.assess(call, cwd);
+    await this.#emit(run, "tool.proposed", `${call.name}: ${assessment.reasons.join(" ")}`, {
+      source: options.source,
+      call: redactValue(call),
+      assessment,
+    });
+
+    if (assessment.decision === "block") {
+      const error = assessment.reasons.join(" ");
+      const result: ToolResult = {
+        ok: false,
+        tool: call.name,
+        error,
+        assessment,
+      };
+      run.error = error;
+      run.status = "failed";
+      await this.#emit(run, "tool.failed", `${call.name} was blocked.`, { result });
+      await this.#emit(run, "run.failed", "Direct-tool run failed.", { error: result.error });
+      return { runId: run.id, result: redactValue(result) };
+    }
+
+    let confirmed = false;
+    if (assessment.decision === "confirm") {
+      const localAssessment = {
+        ...assessment,
+        confirmationPhrase: `CONFIRM ${randomUUID().replaceAll("-", "").slice(0, 8).toUpperCase()}`,
+      };
+      const approval: ApprovalRequest = {
+        id: randomUUID(),
+        runId: run.id,
+        call,
+        assessment: localAssessment,
+        createdAt: new Date().toISOString(),
+      };
+      confirmed = await this.#requestApproval(run, approval);
+      await this.#emit(
+        run,
+        confirmed ? "approval.accepted" : "approval.rejected",
+        confirmed ? "Local confirmation accepted." : "Local confirmation rejected.",
+        { approvalId: approval.id, fingerprint: assessment.fingerprint },
+      );
+      if (!confirmed) {
+        const result: ToolResult = { ok: false, tool: call.name, error: "user_rejected", assessment };
+        run.status = "cancelled";
+        await this.#emit(run, "tool.failed", `${call.name} was rejected without execution.`, { result });
+        return { runId: run.id, result: redactValue(result) };
+      }
+    }
+
+    await this.#emit(run, "tool.started", `Executing ${call.name}.`, { callId: call.callId });
+    let result: ToolResult;
+    try {
+      result = await this.#authority.execute(call, cwd, confirmed);
+    } catch (error) {
+      result = {
+        ok: false,
+        tool: call.name,
+        error: error instanceof Error ? error.message : String(error),
+        assessment,
+      };
+    }
+    await this.#emit(
+      run,
+      result.ok ? "tool.completed" : "tool.failed",
+      result.ok ? `${call.name} completed.` : `${call.name} failed.`,
+      { callId: call.callId, result: redactValue(result) },
+    );
+    run.answer = JSON.stringify(redactValue(result));
+    run.status = result.ok ? "completed" : "failed";
+    if (!result.ok) run.error = result.error ?? "tool_failed";
+    await this.#emit(
+      run,
+      result.ok ? "run.completed" : "run.failed",
+      result.ok ? "Direct-tool run completed." : "Direct-tool run failed.",
+      result.ok ? { result: redactValue(result) } : { error: run.error },
+    );
+    return { runId: run.id, result: redactValue(result) };
   }
 
   async #execute(run: RunRecord): Promise<void> {

@@ -1,6 +1,6 @@
 # Architecture
 
-WinYOLO has one authority boundary: the Windows-resident Bun process. Every surface delegates to the same `ToolAuthority`, so policy, confirmation, process launch, output limits, redaction, and receipts cannot drift between the dashboard and plugin.
+WinYOLO has one authority boundary: the Windows-resident Bun process. Agent, HTTP, and MCP surfaces delegate approvals to `RunManager` and execution to the same `ToolAuthority`, so policy, confirmation, process launch, output limits, redaction, and receipts cannot drift between surfaces.
 
 ## Components
 
@@ -18,7 +18,7 @@ The input starts with the user task. Each Responses API output item is appended 
 
 ## Confirmation binding
 
-The policy fingerprint is SHA‑256 over `{tool name, exact arguments, cwd}`. The dashboard must submit `CONFIRM <first-eight-hex>` for the pending approval. A phrase from another action, working directory, or run cannot resume the call. Rejection returns a structured tool failure to the model so it can adapt.
+The policy fingerprint is SHA‑256 over `{tool name, exact arguments, cwd}`. Manager-owned direct HTTP and MCP runs add a fresh confirmation nonce, preventing the caller from deriving the phrase from its own command. The dashboard exposes the bound call and exact phrase. Approval releases only that stored call; neither the HTTP confirmation endpoint nor MCP `win_confirm` accepts replacement command arguments. Rejection returns a structured tool failure without execution.
 
 ## Native execution
 

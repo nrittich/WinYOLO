@@ -3,11 +3,12 @@ task: "Build and deploy WinYOLO Windows automation control plane"
 project: WinYOLO
 effort: advanced
 effort_source: auto
-phase: verify
-progress: 29/36
+phase: execute
+progress: 34/40
 mode: unattended
+iteration: 2
 started: 2026-07-19T22:30:00-04:00
-updated: 2026-07-20T09:30:00-04:00
+updated: 2026-07-20T10:56:00-04:00
 ---
 
 ## Problem
@@ -61,11 +62,12 @@ Ship a testable Windows-resident WinYOLO service that completes a GPT-5.6 tool l
 - [x] ISC-11: Run transitions are appended to a JSONL receipt on disk.
 - [x] ISC-12: Persisted receipts redact OpenAI-style API keys.
 - [x] ISC-13: OpenAI provider defaults to model `gpt-5.6`.
+- [DEFERRED-VERIFY] ISC-13.1: The Windows primary provider completes an authenticated GPT-5.6 tool call.
 - [x] ISC-14: OpenAI tool definitions use strict JSON schemas.
 - [x] ISC-15: Function-call outputs preserve the model-provided `call_id`.
 - [x] ISC-16: Agent runs stop at the configured maximum tool-step count.
-- [ ] ISC-17: Shell output is bounded by the configured byte limit.
-- [ ] ISC-18: Timed-out shell processes return a structured timeout result.
+- [x] ISC-17: Shell output is bounded by the configured byte limit.
+- [x] ISC-18: Timed-out shell processes return a structured timeout result.
 - [x] ISC-19: PowerShell launches without `shell: true`.
 - [x] ISC-20: Windows PowerShell scripts use UTF-16LE `-EncodedCommand` transport.
 - [x] ISC-21: `wsl`, `bash`, and `\\wsl$` shell requests are rejected.
@@ -75,14 +77,17 @@ Ship a testable Windows-resident WinYOLO service that completes a GPT-5.6 tool l
 - [x] ISC-25: Incorrect confirmation text cannot resume an action.
 - [x] ISC-26: Correct confirmation text resumes the exact bound action.
 - [x] ISC-27: UNC and Windows device namespaces are blocked by default.
-- [ ] ISC-28: Dashboard displays task, status, risk, command, output, and approval state.
-- [ ] ISC-29: CLI `doctor` reports OS, Bun, PowerShell, Codex, key, and loopback readiness.
-- [ ] ISC-30: CLI `demo` exercises native inspection without an API key.
+- [DEFERRED-VERIFY] ISC-28: Dashboard displays task, status, risk, command, output, and approval state.
+- [x] ISC-29: CLI `doctor` reports OS, Bun, PowerShell, Codex, key, and loopback readiness.
+- [x] ISC-30: CLI `demo` exercises native inspection without an API key.
 - [x] ISC-31: Codex CLI provider produces decisions through the canonical tool authority.
-- [x] ISC-32: MCP tools call the same executor and policy engine as HTTP runs.
+- [DEFERRED-VERIFY] ISC-31.1: The Windows Codex provider completes an authenticated planning decision.
+- [ ] ISC-32: MCP tools call the same executor, policy, approval, and receipt authority as HTTP runs.
+- [ ] ISC-32.1: A high-risk MCP call creates dashboard-visible pending approval and resumes the exact bound call after confirmation.
+- [ ] ISC-32.2: MCP exposes `win_confirm` for exact approval or rejection without creating another execution authority.
 - [x] ISC-33: Codex plugin manifest validates and references its real skill and MCP file.
-- [ ] ISC-34: Windows install script creates a runnable local launcher without elevation.
-- [ ] ISC-35: Windows smoke script verifies health, native inspection, and advisory policy fixtures.
+- [x] ISC-34: Windows install script creates a runnable local launcher without elevation.
+- [x] ISC-35: Windows smoke script verifies health, native inspection, and advisory policy fixtures.
 - [x] ISC-36: Anti: no runtime code invokes WSL or requires a Linux subsystem.
 
 ## Test Strategy
@@ -112,12 +117,22 @@ Ship a testable Windows-resident WinYOLO service that completes a GPT-5.6 tool l
 - 2026-07-19 22:30: Reframed the project as an auditable Windows automation control plane because current Codex already runs natively on Windows; observability, receipts, and policy checkpoints are the differentiators.
 - 2026-07-19 22:30: Raw PowerShell remains available per the requested YOLO mode. Protected-root detection is explicitly advisory because arbitrary PowerShell can evade static analysis.
 - 2026-07-19 22:30: Core Responses API execution is the critical path. Codex CLI and plugin are thin alternate planning/transport surfaces over the same authority and cannot own direct execution.
+- 2026-07-20 10:56: refined: Independent QA refuted the assumption that shared `ToolAuthority` alone satisfied MCP integration; MCP must also share RunManager approval state and receipts. Authenticated Windows provider probes are now explicit deferred criteria rather than implied by harness smoke tests.
 
-## Verification Evidence
+## Verification
 
 - Local and server: frozen Bun install, TypeScript check, 30 deterministic tests, and plugin validator all exit 0.
 - Live localhost: health 200, hostile Origin 403, dashboard assets, run creation/failure events, MCP initialization, and canonical MCP tool listing verified.
 - Codex: a real `codex exec` structured decision returned the requested final answer after strict-schema correction.
 - Plugin: Codex 0.144.5 accepted the local marketplace and installed `winyolo@winyolo-local` on the server.
 - Windows relay: PID and log are active on the server, polling the configured PC every 30 seconds for up to 12 hours.
-- Pending native-PC evidence: ISC-17, ISC-18, ISC-28, ISC-29, ISC-30, ISC-34, and ISC-35 remain unchecked until the currently offline Windows host runs `scripts/smoke-windows.ps1` and the dashboard can be inspected in real Chrome.
+- 2026-07-20 initial state: native-PC evidence was pending while the configured Windows host was powered down; the unattended relay later completed after the host came online.
+- ISC-17: native Windows smoke — a 4096-character PowerShell result was capped at 256 bytes and returned `truncated: true`.
+- ISC-18: native Windows smoke — `Start-Sleep -Seconds 5` with `timeout_ms: 250` returned `timedOut: true`.
+- ISC-28: deferred live-browser probe — FOLLOWUP-WINYOLO-UI-1 requires an Interceptor screenshot; host-local HTTP verified task, approval, timeline, EventSource, risk, and output surfaces.
+- ISC-29: native CLI probe — `winyolo.cmd doctor` reported win32 10.0.19045, Bun 1.3.14, PowerShell, Codex 0.144.6 path, missing API key, loopback, and data directory.
+- ISC-30: native CLI probe — `winyolo.cmd demo` returned `ok: true` CIM data for DESKTOP-U1J1HF8 and a high-risk protected-root confirmation fixture.
+- ISC-34: native install/launcher probe — `scripts\\install.ps1` exited 0 and the resulting `winyolo.cmd doctor` and `winyolo.cmd demo` both ran successfully from a fresh SSH shell.
+- ISC-35: native Windows smoke — 30 tests passed and the script printed `WINYOLO_WINDOWS_SMOKE_OK` twice, once through the relay and once from a fresh SSH session.
+- ISC-13.1: deferred authenticated-provider probe — FOLLOWUP-WINYOLO-AUTH-1 requires an OpenAI API key on the Windows host; current failure is explicit: `OPENAI_API_KEY is required for provider 'openai'.`
+- ISC-31.1: deferred authenticated-provider probe — FOLLOWUP-WINYOLO-AUTH-2 requires `codex login` on the Windows host; Codex CLI 0.144.6 currently reports `Not logged in`.
