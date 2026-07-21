@@ -1,0 +1,1 @@
+curl.exe -L "https://raw.githubusercontent.com/nrittich/WinYOLO/main/WINDOWS-DEMO-AND-STORY.txt?version=8d913c3" -o "C:\Users\NickT\AI\Project\WinYOLO\WINDOWS-DEMO-AND-STORY.txt"; Get-Content "C:\Users\NickT\AI\Project\WinYOLO\WINDOWS-DEMO-AND-STORY.txt" -TotalCount 3; notepad "C:\Users\NickT\AI\Project\WinYOLO\WINDOWS-DEMO-AND-STORY.txt"
