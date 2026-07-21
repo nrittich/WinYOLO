@@ -1,26 +1,198 @@
-WINYOLO 0.3 DEMO AND STORY
-==========================
+WINYOLO 0.3 FINAL DEVPOST DEMO SCRIPT
+=====================================
 
-WinYOLO is the Windows-native safety and recovery layer around official Codex.
-Safe is the default. YOLO means approval-free inside the same enforced
-workspace boundary. Isolated adds a restricted account, native Job Object,
-disposable Git worktree, output stream, checkpoint, patch, accept, and rollback.
+TARGET LENGTH: 2 minutes 40 seconds or less
 
-Recording sequence:
+The recording must show the actual WinYOLO Chrome dashboard and PowerShell.
+Do not use the presentation slides as the entire demonstration.
 
-1. bun run demo:reset
-2. bun run demo:verify             (show the initial failure)
-3. winyolo isolated "Change Add to multiply; run tests" --cwd .\demo\BrokenBuild
-4. In Chrome show failure, receipt, diff, then Rollback.
-5. winyolo isolated "Fix the failing Calculator test correctly; run dotnet test" --cwd .\demo\BrokenBuild
-6. In Chrome show passing output, diff, then Accept patch.
-7. bun run demo:verify             (show BROKEN_BUILD_TESTS_PASS)
-8. Open Audit and show the schema-2 receipt and diff hash.
 
-Narration:
+BEFORE RECORDING
+================
 
-“This is the official Codex terminal, with Windows-native safety defaults.
-The first repair attempt is wrong, but it cannot damage the source repository.
-Rollback keeps evidence and discards the worktree. The corrected attempt passes,
-and Accept applies only that delta. NAR keeps the transcript in Codex and the
-security/recovery receipt in WinYOLO.”
+Do NOT run:
+
+bun run demo:reset
+
+The correct BrokenBuild repair is already accepted.
+
+Open PowerShell window 1 and run:
+
+cd C:\Users\NickT\AI\Project\WinYOLO
+winyolo serve
+
+Leave that window running.
+
+Open Chrome at:
+
+http://127.0.0.1:4747
+
+Open PowerShell window 2 and run:
+
+cd C:\Users\NickT\AI\Project\WinYOLO
+
+Before recording, test these commands:
+
+winyolo checkpoint diff cp-b5642ba1-db72-49d9-b617-966a33cc9951
+winyolo checkpoint diff cp-cb89623d-ccd0-411f-a6f2-8c835f62f4b8
+bun run demo:verify
+
+The final command must print:
+
+BROKEN_BUILD_TESTS_PASS
+
+If it fails, stop. Do not record or claim a passing result until the problem is
+diagnosed.
+
+
+RECORDING SCRIPT
+================
+
+0:00-0:25 — INTRODUCE WINYOLO
+-----------------------------
+
+ON SCREEN:
+
+Show the Chrome dashboard. Click Safe, YOLO, and Isolated so the mode indicator
+changes onscreen.
+
+SAY:
+
+"This is WinYOLO, a Windows-native safety and recovery layer around the official
+Codex CLI. Safe mode uses workspace boundaries and approvals. YOLO removes
+approvals but preserves those boundaries. Isolated mode runs Codex under a
+restricted Windows account in a disposable Git workspace."
+
+
+0:25-0:50 — SHOW THE REJECTED REPAIR
+------------------------------------
+
+ON SCREEN:
+
+Switch to PowerShell and run:
+
+winyolo checkpoint diff cp-b5642ba1-db72-49d9-b617-966a33cc9951
+
+Point at the multiplication change in the diff.
+
+SAY:
+
+"Here, Codex was deliberately asked to make the wrong repair. The checkpoint
+diff shows that Calculator Add was changed to multiplication. WinYOLO kept that
+change isolated, allowed me to inspect it, and rolled it back without modifying
+the source project."
+
+
+0:50-1:15 — SHOW THE ACCEPTED REPAIR
+------------------------------------
+
+ON SCREEN:
+
+Run:
+
+winyolo checkpoint diff cp-cb89623d-ccd0-411f-a6f2-8c835f62f4b8
+
+Point at the correct left + right change.
+
+SAY:
+
+"This is the corrected Codex repair. The reviewable patch restores addition.
+Only after reviewing this one-file change did I accept it into the source
+repository."
+
+
+1:15-1:35 — PROVE THE PROJECT WORKS
+-----------------------------------
+
+ON SCREEN:
+
+Run:
+
+bun run demo:verify
+
+Wait for the tests to finish and point at:
+
+BROKEN_BUILD_TESTS_PASS
+
+SAY:
+
+"The real .NET test suite now passes, proving that the accepted repair was
+applied successfully."
+
+
+1:35-1:55 — SHOW AUDIT RECEIPTS
+-------------------------------
+
+ON SCREEN:
+
+Run these two PowerShell commands:
+
+$checkpoints = winyolo checkpoint list | ConvertFrom-Json
+$checkpoints | Where-Object { $_.runId -in @("b5642ba1-db72-49d9-b617-966a33cc9951","cb89623d-ccd0-411f-a6f2-8c835f62f4b8") } | Format-List schema,id,status,finalDiffHash
+
+Point out:
+
+- schema: 2
+- The wrong checkpoint is rolled_back
+- The correct checkpoint is accepted
+- Both records have a finalDiffHash
+
+SAY:
+
+"WinYOLO records schema-two audit receipts. The wrong checkpoint remains
+documented as rolled back, the correct checkpoint is accepted, and
+cryptographic diff hashes preserve the evidence for both decisions."
+
+
+1:55-2:25 — EXPLAIN CODEX AND GPT-5.6
+-------------------------------------
+
+ON SCREEN:
+
+Run:
+
+Select-String .\src\config.ts -Pattern "gpt-5.6"
+
+SAY:
+
+"I used Codex with GPT-5.6 throughout development to design the TypeScript CLI,
+implement Windows isolation and checkpoints, diagnose runner authentication,
+and iterate against the test suite. GPT-5.6 is also configured as WinYOLO's
+default reasoning model for its OpenAI provider. It plans strict-schema tool
+actions, while WinYOLO enforces the Windows execution, review, rollback, and
+audit boundaries."
+
+
+2:25-2:40 — CLOSE
+-----------------
+
+ON SCREEN:
+
+Return to the Chrome dashboard.
+
+SAY:
+
+"Codex remains the development and execution engine. WinYOLO adds native
+Windows safety, visible diffs, acceptance, rollback, and durable audit
+evidence."
+
+Stop recording.
+
+
+FINAL UPLOAD CHECKLIST
+======================
+
+- Video is under three minutes.
+- Narration is audible.
+- Chrome and PowerShell text are readable.
+- The real dashboard appears onscreen.
+- BROKEN_BUILD_TESTS_PASS appears onscreen.
+- Codex and GPT-5.6 are explicitly explained.
+- The video is uploaded to YouTube with visibility set to Public.
+- The YouTube link works in a private or incognito window.
+- The new URL replaces the old Devpost video URL.
+- The Devpost project is saved and finalized.
+
+Suggested YouTube title:
+
+WinYOLO — Native Windows Isolation and Recovery for Codex
