@@ -31,11 +31,14 @@ Open PowerShell window 2 and run:
 
 cd C:\Users\NickT\AI\Project\WinYOLO
 
+IMPORTANT: Before running any Bun project command, confirm the PowerShell prompt
+shows C:\Users\NickT\AI\Project\WinYOLO rather than C:\Program Files\Warp.
+
 Before recording, test these commands:
 
 winyolo checkpoint diff cp-b5642ba1-db72-49d9-b617-966a33cc9951
 winyolo checkpoint diff cp-cb89623d-ccd0-411f-a6f2-8c835f62f4b8
-bun run demo:verify
+Set-Location "C:\Users\NickT\AI\Project\WinYOLO"; bun run demo:verify
 
 The final command must print:
 
@@ -108,7 +111,7 @@ ON SCREEN:
 
 Run:
 
-bun run demo:verify
+Set-Location "C:\Users\NickT\AI\Project\WinYOLO"; bun run demo:verify
 
 Wait for the tests to finish and point at:
 
@@ -151,7 +154,7 @@ ON SCREEN:
 
 Run:
 
-Select-String .\src\config.ts -Pattern "gpt-5.6"
+Set-Location "C:\Users\NickT\AI\Project\WinYOLO"; Select-String .\src\config.ts -Pattern "gpt-5.6"
 
 SAY:
 
