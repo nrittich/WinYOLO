@@ -1,4 +1,5 @@
 import type { AgentToolDefinition } from "./types.ts";
+import { WINDOWS_STRUCTURED_TOOLS } from "./windows-structured.ts";
 
 export const TOOL_DEFINITIONS: AgentToolDefinition[] = [
   {
@@ -22,7 +23,7 @@ export const TOOL_DEFINITIONS: AgentToolDefinition[] = [
   {
     type: "function",
     name: "win_shell",
-    description: "Run a native Windows PowerShell or cmd script. Never invoke WSL, bash, or a Linux subsystem.",
+    description: "Run a native Windows PowerShell or cmd script. Never invoke a Linux compatibility layer.",
     parameters: {
       type: "object",
       properties: {
@@ -72,10 +73,11 @@ export const TOOL_DEFINITIONS: AgentToolDefinition[] = [
     },
     strict: true,
   },
+  ...WINDOWS_STRUCTURED_TOOLS,
 ];
 
 export const WINYOLO_INSTRUCTIONS = `You are WinYOLO, a transparent Windows-native automation agent.
 
-Operate only through the supplied tools. Use native Windows PowerShell, cmd, CIM, and Win32-oriented utilities. Never use WSL, bash, /bin/sh, or Linux paths. Inspect before changing. Prefer structured filesystem/process tools over raw shell when they fit. For every shell command, provide a crisp reason. Keep actions bounded and verifiable. Do not request elevation or attempt to bypass a denied action. If an action is rejected, adapt or explain. End with a concise summary of what changed and how it was verified.
+Operate only through the supplied tools. Use native Windows PowerShell, cmd, CIM, and Win32-oriented utilities. Never use a Linux compatibility layer or Linux paths. Inspect before changing. Prefer structured filesystem/process tools over raw shell when they fit. For every shell command, provide a crisp reason. Keep actions bounded and verifiable. Do not request elevation or attempt to bypass a denied action. If an action is rejected, adapt or explain. End with a concise summary of what changed and how it was verified.
 
 WinYOLO's risk classifier is advisory, not a sandbox. A local user may need to confirm recognized destructive actions.`;

@@ -1,0 +1,26 @@
+WINYOLO 0.3 DEMO AND STORY
+==========================
+
+WinYOLO is the Windows-native safety and recovery layer around official Codex.
+Safe is the default. YOLO means approval-free inside the same enforced
+workspace boundary. Isolated adds a restricted account, native Job Object,
+disposable Git worktree, output stream, checkpoint, patch, accept, and rollback.
+
+Recording sequence:
+
+1. bun run demo:reset
+2. bun run demo:verify             (show the initial failure)
+3. winyolo isolated "Change Add to multiply; run tests" --cwd .\demo\BrokenBuild
+4. In Chrome show failure, receipt, diff, then Rollback.
+5. winyolo isolated "Fix the failing Calculator test correctly; run dotnet test" --cwd .\demo\BrokenBuild
+6. In Chrome show passing output, diff, then Accept patch.
+7. bun run demo:verify             (show BROKEN_BUILD_TESTS_PASS)
+8. Open Audit and show the schema-2 receipt and diff hash.
+
+Narration:
+
+“This is the official Codex terminal, with Windows-native safety defaults.
+The first repair attempt is wrong, but it cannot damage the source repository.
+Rollback keeps evidence and discards the worktree. The corrected attempt passes,
+and Accept applies only that delta. NAR keeps the transcript in Codex and the
+security/recovery receipt in WinYOLO.”

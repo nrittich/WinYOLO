@@ -1,4 +1,3 @@
-#!/usr/bin/env bun
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -58,9 +57,11 @@ async function transfer(): Promise<void> {
     "--exclude=node_modules",
     "--exclude=.env",
     "--exclude=.winyolo",
+    "--exclude=._*",
+    "--exclude=*/._*",
     "-C", projectRoot,
     ".",
-  ], { stdout: "pipe", stderr: "pipe" });
+  ], { env: { ...process.env, COPYFILE_DISABLE: "1" }, stdout: "pipe", stderr: "pipe" });
   const extract = Bun.spawn(
     ["ssh", ...sshOptions, target, `tar xf - -C "${destination}"`],
     { stdin: archive.stdout, stdout: "pipe", stderr: "pipe" },
@@ -74,6 +75,8 @@ async function transfer(): Promise<void> {
   ]);
   assertOk("archive creation", { code: archiveCode, stdout: "", stderr: archiveError });
   assertOk("archive extraction", { code: extractCode, stdout: extractOut, stderr: extractError });
+  const guide = await ssh(`cmd /d /c if exist "${destination}\\WINDOWS-FULL-IMPLEMENTATION-STEPS.txt" (echo WINYOLO_GUIDE_PRESENT) else (echo WINYOLO_GUIDE_MISSING & exit /b 1)`);
+  assertOk("implementation guide transfer", guide);
 }
 
 async function ensureBun(): Promise<void> {
@@ -87,6 +90,9 @@ async function ensureBun(): Promise<void> {
 async function verify(): Promise<void> {
   const prefix = `cmd /d /s /c "set PATH=%USERPROFILE%\\.bun\\bin;%PATH%&& cd /d "${destination}"&&`;
   assertOk("WinYOLO install", await ssh(`${prefix} powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\install.ps1"`));
+  const desktopGuide = await ssh(`${prefix} powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Copy-Item -LiteralPath '${destination}\\WINDOWS-FULL-IMPLEMENTATION-STEPS.txt' -Destination ([Environment]::GetFolderPath('Desktop')) -Force; if (-not (Test-Path -LiteralPath (Join-Path ([Environment]::GetFolderPath('Desktop')) 'WINDOWS-FULL-IMPLEMENTATION-STEPS.txt'))) { exit 1 }; Write-Output WINYOLO_GUIDE_DESKTOP_OK""`);
+  assertOk("Desktop implementation guide", desktopGuide);
+  process.stdout.write(desktopGuide.stdout);
   const smoke = await ssh(`${prefix} powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\smoke-windows.ps1"`);
   process.stdout.write(smoke.stdout);
   assertOk("Windows smoke", smoke);

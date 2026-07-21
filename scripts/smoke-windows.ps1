@@ -8,6 +8,12 @@ $ServerErr = Join-Path $env:TEMP 'winyolo-smoke-server.err.log'
 if ($env:OS -ne 'Windows_NT') { throw 'This smoke test must run on native Windows.' }
 if (-not (Get-Command bun -ErrorAction SilentlyContinue)) { throw 'Bun is not on PATH.' }
 if (-not (Get-Command powershell.exe -ErrorAction SilentlyContinue)) { throw 'Windows PowerShell is unavailable.' }
+$GitCandidates = @('C:\Program Files\Git\cmd', 'C:\Program Files\Git\bin') | Where-Object { Test-Path $_ }
+if ($GitCandidates) { $env:Path = (($GitCandidates -join ';') + ';' + $env:Path) }
+ $AppleDouble = @(Get-ChildItem $ProjectRoot -Recurse -Force -File -Filter '._*' -ErrorAction SilentlyContinue | Where-Object { Test-Path -LiteralPath $_.FullName })
+if ($AppleDouble) {
+  throw 'Mac AppleDouble metadata files were deployed into the Windows project.'
+}
 
 Push-Location $ProjectRoot
 try {
@@ -15,10 +21,41 @@ try {
   bun run typecheck
   bun test
   bun run validate:plugin
+  powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install.ps1
+  powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install.ps1
+
+  $Launcher = Get-Command winyolo -ErrorAction Stop
+  $ExpectedLauncher = Join-Path (Split-Path -Parent (Get-Command bun -ErrorAction Stop).Source) 'winyolo.cmd'
+  if (-not $Launcher.Source.Equals($ExpectedLauncher, [StringComparison]::OrdinalIgnoreCase)) {
+    throw "WinYOLO resolved to '$($Launcher.Source)' instead of '$ExpectedLauncher'."
+  }
+  $ShimText = Get-Content $Launcher.Source -Raw
+  if ($ShimText -notmatch [regex]::Escape((Join-Path $ProjectRoot 'winyolo.cmd'))) {
+    throw 'WinYOLO PATH shim does not target this project root.'
+  }
+  $CodexVersion = & winyolo --version 2>&1 | Out-String
+  if ($LASTEXITCODE -ne 0 -or $CodexVersion -notmatch 'codex-cli') { throw "Bare WinYOLO did not pass through to Codex: $CodexVersion" }
+  $Doctor = & winyolo doctor 2>&1 | Out-String
+  if ($LASTEXITCODE -ne 0 -or $Doctor -notmatch 'WinYOLO doctor') { throw "Bare WinYOLO doctor failed: $Doctor" }
+  & winyolo safe --help | Out-Null
+  if ($LASTEXITCODE -ne 0) { throw 'WinYOLO Safe mode did not reach Codex.' }
+  & winyolo yolo --help | Out-Null
+  if ($LASTEXITCODE -ne 0) { throw 'WinYOLO constrained YOLO mode did not reach Codex.' }
+  $PreviousErrorActionPreference = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
+  & winyolo --dangerously-bypass-approvals-and-sandbox 2>$null | Out-Null
+  $BypassExitCode = $LASTEXITCODE
+  $ErrorActionPreference = $PreviousErrorActionPreference
+  if ($BypassExitCode -eq 0) { throw 'WinYOLO accepted an unrestricted bypass flag.' }
+  $PluginList = codex plugin list --json | ConvertFrom-Json
+  if (($PluginList | ConvertTo-Json -Depth 10) -notmatch 'winyolo') { throw 'WinYOLO plugin is not installed.' }
 
   $env:WINYOLO_PORT = "$Port"
   $env:WINYOLO_DATA_DIR = $DataDir
-  $env:WINYOLO_COMMAND_TIMEOUT_MS = '2000'
+  # CIM inventory can take several seconds on a cold Windows host. Keep the
+  # harness ceiling generous; the dedicated timeout assertion below still
+  # supplies its own 250 ms limit.
+  $env:WINYOLO_COMMAND_TIMEOUT_MS = '15000'
   $env:WINYOLO_MAX_OUTPUT_BYTES = '256'
   $Server = Start-Process bun -ArgumentList @('run','src/cli.ts','serve') -WorkingDirectory $ProjectRoot -PassThru -RedirectStandardOutput $ServerOut -RedirectStandardError $ServerErr
   try {
@@ -32,6 +69,11 @@ try {
     }
     if (-not $Healthy) { throw "Server did not become healthy. $((Get-Content $ServerErr -Raw -ErrorAction SilentlyContinue))" }
     if ($Health.platform -ne 'win32') { throw "Expected win32 health platform, got $($Health.platform)." }
+    if (-not $Health.codex.available) { throw 'Health endpoint did not find native Codex.' }
+    $Capabilities = Invoke-RestMethod "http://127.0.0.1:$Port/api/windows/capabilities"
+    if (-not $Capabilities.ok -or -not $Capabilities.capabilities.native) { throw 'Windows capability endpoint did not report native readiness.' }
+    $Threads = Invoke-RestMethod "http://127.0.0.1:$Port/api/codex/threads?limit=1&archived=false"
+    if (-not $Threads.ok) { throw 'Codex thread gateway did not respond.' }
 
     function Invoke-WinYoloTool($Name, $Arguments) {
       $Body = @{ name = $Name; arguments = $Arguments } | ConvertTo-Json -Depth 8
@@ -143,15 +185,23 @@ try {
       Remove-Item -LiteralPath $Fixture -Force -ErrorAction SilentlyContinue
     }
 
+    $PreviousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
     $Demo = bun run src/cli.ts demo 2>&1 | Out-String
-    if ($LASTEXITCODE -ne 0) { throw "Demo failed: $Demo" }
-    if ($Demo -notmatch 'awaiting|confirm') { throw 'Demo did not surface the protected-root confirmation fixture.' }
+    $DemoExitCode = $LASTEXITCODE
+    $ErrorActionPreference = $PreviousErrorActionPreference
+    if ($DemoExitCode -ne 0) { throw "Demo failed: $Demo" }
+    if ($Demo -notmatch 'Initial failure captured') { throw 'Demo did not capture the deterministic failing test.' }
 
     $OriginBlocked = $false
     try {
       Invoke-WebRequest "http://127.0.0.1:$Port/api/runs" -Headers @{Origin='https://evil.example'} -UseBasicParsing | Out-Null
     } catch { $OriginBlocked = $_.Exception.Response.StatusCode.value__ -eq 403 }
     if (-not $OriginBlocked) { throw 'Unexpected browser Origin was not blocked.' }
+
+    $RuntimeSources = Get-Content src\cli.ts,src\codex-launcher.ts,src\codex-gateway.ts,src\codex-http.ts -Raw
+    bun run scripts/source-scan.ts
+    if ($LASTEXITCODE -ne 0) { throw 'Production source scan found a forbidden compatibility transport.' }
   } finally {
     if ($Server -and -not $Server.HasExited) { Stop-Process -Id $Server.Id -Force }
   }

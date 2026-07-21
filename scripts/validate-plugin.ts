@@ -16,13 +16,17 @@ for (const field of ["displayName", "shortDescription", "longDescription", "deve
   if (!manifest.interface?.[field]) fail(`interface.${field} is required`);
 }
 if (JSON.stringify(manifest).includes("[TODO:")) fail("manifest contains TODO placeholders");
-for (const field of ["skills", "mcpServers"]) {
+for (const field of ["skills", "mcpServers", "hooks"]) {
   const relative = manifest[field];
   if (typeof relative !== "string" || !relative.startsWith("./")) fail(`${field} must be a ./ relative path`);
   if (!existsSync(resolve(pluginRoot, relative))) fail(`${field} target does not exist`);
 }
 if (manifest.apps && !existsSync(resolve(pluginRoot, manifest.apps))) fail("apps declared without companion file");
-if (manifest.hooks) fail("unsupported hooks field must be omitted");
+const hooks = await Bun.file(resolve(pluginRoot, manifest.hooks)).json() as Record<string, any>;
+for (const event of ["PreToolUse", "PermissionRequest", "PostToolUse", "SessionStart", "Stop"]) {
+  if (!Array.isArray(hooks.hooks?.[event])) fail(`hooks missing ${event}`);
+  if (!hooks.hooks[event].every((group: any) => group.hooks?.every((hook: any) => hook.commandWindows?.includes("bun run")))) fail(`${event} must use a Windows Bun command`);
+}
 
 const marketplace = await Bun.file(marketplacePath).json() as Record<string, any>;
 const entry = marketplace.plugins?.find((item: any) => item.name === "winyolo");

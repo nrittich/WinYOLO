@@ -1,67 +1,15 @@
-WinYOLO — Windows Quick Start
-==============================
+WINYOLO 0.3 — START HERE
+========================
 
-Project folder
---------------
-C:\Users\NickT\AI\Project\WinYOLO
+Follow WINDOWS-FULL-IMPLEMENTATION-STEPS.txt from top to bottom.
 
-Open PowerShell and run:
+Fast path after a successful full installation:
 
-  cd C:\Users\NickT\AI\Project\WinYOLO
+winyolo doctor
+winyolo                         Safe official Codex TUI
+winyolo yolo                    Approval-free, workspace-constrained TUI
+winyolo isolated "task"         Restricted runner plus rollback
+winyolo serve                   Loopback browser companion
 
-If PowerShell says Bun is not recognized
-----------------------------------------
-
-The PowerShell window was probably opened before Bun was installed. Either
-close it and open a new PowerShell window, or refresh PATH in the current one:
-
-  $env:Path = [Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [Environment]::GetEnvironmentVariable("Path", "User")
-  bun --version
-
-Expected result:
-
-  1.3.14
-
-Absolute-path fallback:
-
-  & "$env:USERPROFILE\.bun\bin\bun.exe" --version
-
-Choose one model path
----------------------
-
-Option A — Codex planner
-
-  codex login
-  .\winyolo.cmd serve
-
-Option B — GPT-5.6 Responses API
-
-  $env:OPENAI_API_KEY = "your-openai-api-key"
-  .\winyolo.cmd serve
-
-Then open this address in your browser:
-
-  http://127.0.0.1:4747
-
-Useful commands
----------------
-
-  .\winyolo.cmd doctor
-  .\winyolo.cmd demo
-  powershell -NoProfile -ExecutionPolicy Bypass -File scripts\smoke-windows.ps1
-
-What is already installed and verified
---------------------------------------
-
-- Bun 1.3.14
-- Codex CLI 0.144.6
-- WinYOLO Codex plugin (winyolo@winyolo-local)
-- Native Windows smoke suite: passing
-
-Important
----------
-
-- Codex is installed but needs `codex login` before using its planner.
-- GPT-5.6 needs OPENAI_API_KEY before using the API provider.
-- WinYOLO stays local at 127.0.0.1 and does not use WSL.
-- High-risk actions pause in the dashboard for exact local confirmation.
+WinYOLO never provides unrestricted mode. Use raw codex outside WinYOLO only
+when you intentionally accept responsibility beyond WinYOLO’s guarantees.

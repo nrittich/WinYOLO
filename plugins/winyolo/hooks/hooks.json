@@ -1,0 +1,10 @@
+{
+  "description": "WinYOLO Windows-native boundary and schema-2 receipt hooks.",
+  "hooks": {
+    "SessionStart": [{ "matcher": "startup|resume|clear|compact", "hooks": [{ "type": "command", "command": "bun run \"$PLUGIN_ROOT/hooks/receipt-hook.ts\" SessionStart", "commandWindows": "bun run \"%PLUGIN_ROOT%\\hooks\\receipt-hook.ts\" SessionStart", "timeout": 10, "statusMessage": "Starting WinYOLO receipt" }] }],
+    "PreToolUse": [{ "matcher": "*", "hooks": [{ "type": "command", "command": "bun run \"$PLUGIN_ROOT/hooks/receipt-hook.ts\" PreToolUse", "commandWindows": "bun run \"%PLUGIN_ROOT%\\hooks\\receipt-hook.ts\" PreToolUse", "timeout": 10, "statusMessage": "Checking WinYOLO boundary" }] }],
+    "PermissionRequest": [{ "matcher": "*", "hooks": [{ "type": "command", "command": "bun run \"$PLUGIN_ROOT/hooks/receipt-hook.ts\" PermissionRequest", "commandWindows": "bun run \"%PLUGIN_ROOT%\\hooks\\receipt-hook.ts\" PermissionRequest", "timeout": 10, "statusMessage": "Recording permission request" }] }],
+    "PostToolUse": [{ "matcher": "*", "hooks": [{ "type": "command", "command": "bun run \"$PLUGIN_ROOT/hooks/receipt-hook.ts\" PostToolUse", "commandWindows": "bun run \"%PLUGIN_ROOT%\\hooks\\receipt-hook.ts\" PostToolUse", "timeout": 10, "statusMessage": "Recording tool result" }] }],
+    "Stop": [{ "hooks": [{ "type": "command", "command": "bun run \"$PLUGIN_ROOT/hooks/receipt-hook.ts\" Stop", "commandWindows": "bun run \"%PLUGIN_ROOT%\\hooks\\receipt-hook.ts\" Stop", "timeout": 10 }] }]
+  }
+}

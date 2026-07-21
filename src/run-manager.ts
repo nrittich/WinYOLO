@@ -4,7 +4,7 @@ import { WinYoloAgent } from "./agent.ts";
 import { EventJournal } from "./journal.ts";
 import { ToolAuthority } from "./executor.ts";
 import { redactValue } from "./redact.ts";
-import type { ApprovalRequest, ProviderName, RunEvent, RunRecord, ToolCall, ToolResult } from "./types.ts";
+import type { ApprovalRequest, PolicyAssessment, ProviderName, RunEvent, RunRecord, ToolCall, ToolResult } from "./types.ts";
 
 interface AgentRunner {
   run: WinYoloAgent["run"];
@@ -77,11 +77,26 @@ export class RunManager {
     this.#eventIds.set(run.id, nextId);
     const now = new Date().toISOString();
     const event: RunEvent = {
+      schema: 2,
       id: nextId,
       runId: run.id,
       at: now,
       type,
       message,
+      sessionId: null,
+      threadId: null,
+      turnId: null,
+      toolCallId: typeof data?.callId === "string" ? data.callId : null,
+      checkpointId: null,
+      processId: null,
+      command: null,
+      cwd: run.cwd,
+      risk: (data?.assessment as PolicyAssessment | undefined)?.risk ?? null,
+      approvalSource: type.startsWith("approval.") ? "local-user" : null,
+      durationMs: (data?.result as ToolResult | undefined)?.durationMs ?? null,
+      exitStatus: (data?.result as ToolResult | undefined)?.exitCode ?? null,
+      outputBytes: null,
+      finalDiffHash: null,
       ...(data ? { data: redactValue(data) } : {}),
     };
     run.updatedAt = now;
@@ -238,12 +253,17 @@ export class RunManager {
   async #requestApproval(run: RunRecord, approval: ApprovalRequest): Promise<boolean> {
     run.status = "awaiting_confirmation";
     run.pendingApproval = approval;
+    // Register the waiter before exposing the pending state through the
+    // journal/dashboard. Otherwise a fast client can confirm during the emit
+    // and receive a false mismatch because the approval is visible but not yet
+    // actionable.
+    const response = new Promise<boolean>((resolve) => {
+      this.#waiters.set(approval.id, { approval, resolve });
+    });
     await this.#emit(run, "approval.required", "A high-risk action requires local confirmation.", {
       approval: redactValue(approval),
     });
-    return new Promise<boolean>((resolve) => {
-      this.#waiters.set(approval.id, { approval, resolve });
-    });
+    return response;
   }
 
   confirm(runId: string, approvalId: string, decision: "approve" | "reject", confirmation = ""): boolean {

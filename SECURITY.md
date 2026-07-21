@@ -1,17 +1,11 @@
 # Security model
 
-## Supported boundary
+WinYOLO exposes no unrestricted mode. Safe and YOLO both use Codex `workspace-write`; Safe requests approvals and YOLO rejects/contains boundary escalation without prompts. Command networking is denied unless an operator explicitly configures an allowlisted native proxy profile.
 
-WinYOLO binds to loopback, rejects untrusted browser origins, keeps provider credentials server-side, redacts known credential shapes before persistence, caps output, limits agent steps, and refuses non-loopback configuration.
+Isolated mode adds an OS identity and recovery boundary: `WinYOLORunner`, DPAPI-protected broker credential, protected data ACLs, sanitized environment, `CreateProcessWithLogonW`, a kill-on-close Job Object, and a disposable Git worktree. The source repository is never the isolated working directory.
 
-Recognized destructive shell or filesystem actions targeting Windows system roots require an exact local confirmation. Destructive shell commands whose targets cannot be resolved also require confirmation. WSL requests, UNC shares, and Windows device namespaces are rejected in v1.
+Structured Windows operations receive exact target policy. Protected services, system/device namespaces, compatibility transports, secret paths, and non-allowlisted registry writes are blocked. Package, service, and ACL mutations require exact approval outside isolation. Raw PowerShell and cmd remain available only inside the current Codex sandbox.
 
-## Non-goals
+The loopback server rejects hostile Origins, bounds/redacts output, and never returns runner credentials, provider authentication, raw environments, transcript paths, or app-server stdio. Codex owns transcripts; WinYOLO stores only schema-versioned execution receipts.
 
-WinYOLO is not a PowerShell sandbox, endpoint protection product, or privilege boundary. Static inspection cannot reliably understand arbitrary PowerShell, nested processes, dynamic expressions, reparse points, environment expansion, short paths, mapped drives, or native binaries. Confirmation authorizes an attempted command; it does not elevate privileges or prove the command is safe.
-
-Run WinYOLO unelevated on a machine and repository you trust. Do not expose its port beyond loopback.
-
-## Reporting
-
-Do not include API keys, personal file contents, or live system receipts in a public issue. Provide a minimal reproduction using a temporary fixture directory.
+These controls do not make raw `codex` invocations part of WinYOLO. They also do not replace endpoint protection or Windows administrator policy. Run the adversarial native smoke before release and report failures without attaching credentials or personal receipts.

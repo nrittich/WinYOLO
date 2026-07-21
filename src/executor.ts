@@ -5,6 +5,7 @@ import type { AppConfig } from "./config.ts";
 import { assessToolCall } from "./policy.ts";
 import { redactText } from "./redact.ts";
 import type { PolicyAssessment, ToolCall, ToolResult } from "./types.ts";
+import { structuredScript, validateStructuredCall } from "./windows-structured.ts";
 
 interface BoundedRead {
   text: string;
@@ -162,6 +163,13 @@ export class ToolAuthority {
 
     const args = call.arguments;
     try {
+      const validationError = validateStructuredCall(call);
+      if (validationError) throw new Error(validationError);
+      const structured = structuredScript(call, cwd);
+      if (structured) {
+        const result = await runNativeShell({ shell: "powershell", script: structured.script, cwd: structured.cwd, timeoutMs: this.#config.commandTimeoutMs, maxOutputBytes: this.#config.maxOutputBytes });
+        return { ...result, tool: call.name, assessment };
+      }
       if (call.name === "win_system_inspect") {
         const result = await runNativeShell({
           shell: "powershell",

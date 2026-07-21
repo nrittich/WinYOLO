@@ -1,19 +1,19 @@
 ---
 name: windows-native-control
-description: Use WinYOLO to inspect or operate a Windows PC with native PowerShell, cmd, filesystem, and process tools while preserving a visible local receipt.
+description: Use WinYOLO for policy-aware native Windows paths, .NET, MSBuild, NuGet, WinGet, services, registry, Event Log, ACLs, processes, files, checkpoints, and isolated execution.
 ---
 
 # Windows Native Control
 
-Use the `winyolo` MCP tools whenever the user wants to inspect, diagnose, configure, or automate the local Windows PC through WinYOLO.
+Use WinYOLO structured tools before raw PowerShell when a schema covers the operation.
 
-## Workflow
+1. Inspect machine and target state before mutation.
+2. Use `win_path` for canonicalization, target, reparse, and traversal checks.
+3. Use the dedicated .NET/MSBuild/NuGet tools for build work.
+4. Use exact package, service, registry, Event Log, and ACL targets.
+5. Never attempt a Linux compatibility transport, device namespace, secret path, or unrestricted Codex escalation.
+6. In Safe mode, let WinYOLO request exact approval for typed high-risk actions. In constrained YOLO, adapt when a boundary escalation is rejected.
+7. Prefer `winyolo isolated` for autonomous changes requiring rollback.
+8. Finish with commands, observed results, checkpoint/diff hash, and verification evidence.
 
-1. Call `win_system_inspect` before assuming machine state.
-2. Prefer `win_filesystem` and `win_process` when they express the action.
-3. Use `win_shell` for native PowerShell or cmd tasks that need broader control.
-4. Never request WSL, bash, Linux paths, UAC elevation, registry mutation, drivers, or GUI automation.
-5. A high-risk MCP call remains pending while WinYOLO displays it in the localhost dashboard. Tell the user to review it there. Never call `win_confirm`, derive, invent, or submit a confirmation phrase yourself; that MCP-only control tool is reserved for trusted local confirmation clients.
-6. Finish with the commands used, observed result, and verification evidence.
-
-WinYOLO's command classifier is advisory rather than a security sandbox. Treat its risk explanation as local review context, not proof that arbitrary PowerShell is safe.
+Codex owns transcripts. WinYOLO owns redacted execution and isolation receipts; never parse private transcript files.

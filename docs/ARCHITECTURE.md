@@ -1,25 +1,15 @@
 # Architecture
 
-WinYOLO has one authority boundary: the Windows-resident Bun process. Agent, HTTP, and MCP surfaces delegate approvals to `RunManager` and execution to the same `ToolAuthority`, so policy, confirmation, process launch, output limits, redaction, and receipts cannot drift between surfaces.
+WinYOLO 0.3 has three execution boundaries.
 
-## Components
+1. The official interactive Codex TUI runs with workspace-write. Safe uses on-request approvals; YOLO uses never. Both deny command networking by default.
+2. Browser conversations use the official app-server protocol with the same Safe/YOLO policies. Codex remains transcript authority.
+3. Isolated tasks run `codex.exe exec` as `WinYOLORunner` in a disposable Git worktree. A native Bun FFI broker calls `CreateProcessWithLogonW`, assigns the process to a kill-on-close Job Object, sanitizes the environment, and redirects bounded output to the Bun server.
 
-1. `OpenAIResponsesProvider` submits strict tools to `gpt-5.6`, retains response output items, and returns function outputs using the original `call_id`.
-2. `CodexCliProvider` runs Codex in a read-only sandbox as a structured planner. It returns one typed tool proposal at a time; it does not execute Windows commands itself.
-3. `WinYoloAgent` enforces the maximum tool-step count and routes every proposal through the authority.
-4. `ToolAuthority` applies advisory policy and executes native tools.
-5. `RunManager` enforces one active run and owns resumable in-process confirmations.
-6. `EventJournal` redacts before appending JSONL and broadcasting SSE.
-7. `server.ts` serves HTTP, MCP, SSE, and static dashboard assets on loopback.
+The launcher rejects every full-access escalation at its public boundary. The plugin’s `PreToolUse` hook independently rejects compatibility transports, device namespaces, secret paths, and unrestricted Codex flags.
 
-## Responses tool loop
+`CheckpointManager` creates a branch/worktree from `HEAD`, overlays the source repository’s current tracked and non-secret untracked state, commits an isolated baseline, and calculates only the later task delta. Accept checks the original source-state hash before applying the patch. Rollback always exports the patch before removing the worktree and branch.
 
-The input starts with the user task. Each Responses API output item is appended to the running input, preserving reasoning and function-call items. WinYOLO executes every function call, appends a stringified `function_call_output` carrying the same `call_id`, and sends the expanded input back to the model. The loop ends on final text or the configured tool limit.
+Schema-2 receipts bind session, thread, turn, tool call, checkpoint, process, and isolation run identifiers. They include risk, approval source, timing, exit status, bounded output size, and final diff hash. Schema-1 JSONL remains readable with absent fields normalized to `null`.
 
-## Confirmation binding
-
-The policy fingerprint is SHA‑256 over `{tool name, exact arguments, cwd}`. Manager-owned direct HTTP and MCP runs add a fresh confirmation nonce, preventing the caller from deriving the phrase from its own command. The dashboard exposes the bound call and exact phrase. Approval releases only that stored call; neither the HTTP confirmation endpoint nor MCP `win_confirm` accepts replacement command arguments. Rejection returns a structured tool failure without execution.
-
-## Native execution
-
-PowerShell commands are UTF‑16LE base64 encoded and passed directly to `powershell.exe -EncodedCommand`. cmd commands are passed directly to `cmd.exe /d /s /c`. Bun never asks a host Unix shell to reinterpret those arguments. Output streams are drained concurrently, stored only up to the byte limit, and marked when truncated. On Windows timeout, WinYOLO calls `taskkill /T /F` before killing the parent process.
+The server is loopback-only and applies Origin protection before every `/api/*` endpoint. It never returns the runner password, Codex authentication, raw child environment, or app-server stdio.

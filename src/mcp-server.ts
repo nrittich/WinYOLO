@@ -26,7 +26,7 @@ const MCP_CONFIRM_TOOL = {
 
 export function createMcpServer(config: AppConfig, manager = new RunManager(config)): Server {
   const server = new Server(
-    { name: "winyolo", version: "0.1.0" },
+    { name: "winyolo", version: "0.2.0" },
     { capabilities: { tools: {} } },
   );
   server.setRequestHandler(ListToolsRequestSchema, async () => ({

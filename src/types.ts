@@ -10,6 +10,7 @@ export type RunStatus =
 export type RiskLevel = "low" | "medium" | "high" | "blocked";
 
 export interface RunEvent {
+  schema?: 1 | 2;
   id: number;
   runId: string;
   at: string;
@@ -30,6 +31,20 @@ export interface RunEvent {
     | "run.failed";
   message: string;
   data?: Record<string, unknown>;
+  sessionId?: string | null;
+  threadId?: string | null;
+  turnId?: string | null;
+  toolCallId?: string | null;
+  checkpointId?: string | null;
+  processId?: number | null;
+  command?: string[] | null;
+  cwd?: string | null;
+  risk?: RiskLevel | null;
+  approvalSource?: string | null;
+  durationMs?: number | null;
+  exitStatus?: number | null;
+  outputBytes?: number | null;
+  finalDiffHash?: string | null;
 }
 
 export interface ToolCall {
@@ -42,7 +57,16 @@ export type ToolName =
   | "win_system_inspect"
   | "win_shell"
   | "win_filesystem"
-  | "win_process";
+  | "win_process"
+  | "win_path"
+  | "win_dotnet"
+  | "win_msbuild"
+  | "win_nuget"
+  | "win_winget"
+  | "win_service"
+  | "win_registry"
+  | "win_eventlog"
+  | "win_acl";
 
 export interface PolicyAssessment {
   decision: "allow" | "confirm" | "block";

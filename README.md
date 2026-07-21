@@ -1,155 +1,56 @@
-# WinYOLO
+# WinYOLO 0.3
 
-**Move fast. See everything.**
+WinYOLO is a Windows-native launcher, isolation runner, and loopback companion for the official Codex CLI. It never uses a Linux compatibility layer in production.
 
-WinYOLO is a transparent Windows-native automation control plane powered by GPT‑5.6 and Codex. It turns a natural-language task into native PowerShell, cmd, filesystem, process, and system-inspection actions while showing every proposal, risk label, result, and confirmation in a localhost dashboard.
-
-It does not use WSL. It also does not pretend arbitrary PowerShell can be made safe with a regular expression. YOLO mode is intentionally powerful; recognized destructive actions that touch Windows system roots pause for a local, action-bound confirmation, and every step is written to a redacted JSONL receipt.
-
-## Why it exists
-
-Codex already runs natively on Windows. The missing piece WinYOLO targets is operational transparency: one Windows-resident authority shared by the API agent, terminal, dashboard, MCP server, and Codex plugin.
+## Modes
 
 ```text
-GPT-5.6 Responses API ─┐
-Codex CLI planner ─────┼─> WinYOLO agent loop
-Codex plugin / MCP ────┘          │
-                                  v
-                         policy + confirmation
-                                  │
-                                  v
-                  PowerShell / cmd / files / processes
-                                  │
-                                  v
-                    live dashboard + JSONL receipt
+winyolo [codex arguments]          Safe Codex TUI (workspace-write, on-request, network denied)
+winyolo safe [codex arguments]     Compatibility alias for Safe
+winyolo yolo [codex arguments]     Approval-free Codex TUI inside workspace-write
+winyolo isolated "<task>"          Restricted-account job in a disposable Git worktree
+winyolo checkpoint list
+winyolo checkpoint diff <id>
+winyolo checkpoint accept <id>
+winyolo checkpoint rollback <id>
+winyolo benchmark wsl --confirm BENCHMARK-ONLY
+winyolo serve | doctor | demo
 ```
 
-## Windows quick start
+WinYOLO rejects `--yolo`, `--dangerously-bypass-approvals-and-sandbox`, and `sandbox_mode=danger-full-access`. Raw `codex` remains outside WinYOLO’s guarantees.
 
-Requirements:
+## Full installation
 
-- Windows 10 or 11
-- [Bun](https://bun.sh/) 1.3 or newer
-- An OpenAI API key for the GPT‑5.6 path
-- Optional: Codex CLI for the secondary planner and plugin workflow
-
-From native PowerShell:
+From an elevated-capable PowerShell session:
 
 ```powershell
-git clone <your-repository-url> WinYOLO
-cd WinYOLO
-powershell -ExecutionPolicy Bypass -File scripts\install.ps1
+Set-ExecutionPolicy -Scope Process Bypass -Force
+& .\scripts\install.ps1 -Full
 ```
 
-Add the API key to `.env`, or set it for the current terminal:
+The script requests UAC once, installs or updates the native toolchain through WinGet, installs Codex and the plugin, creates `WinYOLORunner`, protects its DPAPI credential, and prepares `%LOCALAPPDATA%\WinYOLO`.
 
-```powershell
-$env:OPENAI_API_KEY = "your-key"
-```
+After installation, run `codex login`, then open `winyolo`, enter `/hooks`, and trust the five bundled hook definitions.
 
-Start the service:
+## Isolation and recovery
 
-```powershell
-.\winyolo.cmd serve
-```
+Isolated mode requires a Git repository with an initial commit. WinYOLO creates `%LOCALAPPDATA%\WinYOLO\workspaces\<run-id>`, copies the current tracked/dirty/untracked state into a checkpoint baseline without changing the source tree, withholds `.env` files, launches native `codex.exe exec` as `WinYOLORunner`, and assigns the process to a kill-on-close Job Object.
 
-Open <http://127.0.0.1:4747>. The API key stays in the Bun process and is never sent to browser JavaScript.
+Every rollback exports `result.patch` before deleting the worktree. Accept refuses if the source repository changed since checkpoint creation.
 
-## CLI
+## Structured Windows tools
 
-```powershell
-.\winyolo.cmd doctor
-.\winyolo.cmd demo
-.\winyolo.cmd run "Inspect this Windows development environment" --provider openai
-.\winyolo.cmd run "Find what owns port 3000" --provider codex
-```
+The MCP exposes strict-schema tools for paths/reparse points, .NET, MSBuild/Visual Studio discovery, NuGet, WinGet, services, registry, Event Log, and NTFS ACLs. System mutations have typed risk assessments; protected services and non-allowlisted registry writes are blocked.
 
-`demo` needs no API key. It performs native system inspection, then classifies—but never executes—a deliberately nonexistent protected-root deletion.
+## Companion API
 
-## Core behavior
-
-- GPT‑5.6 through the OpenAI Responses API with strict function schemas.
-- Native Windows PowerShell 5.1 transport through UTF‑16LE `-EncodedCommand` and direct argv spawning.
-- Native cmd support without a Unix shell intermediary.
-- Structured filesystem, process, and CIM-based system inspection tools.
-- Raw PowerShell YOLO mode with visible reasons and output.
-- One active run, bounded steps, bounded command output, and process timeouts.
-- Action confirmation binds the exact arguments, working directory, and run; direct HTTP/MCP approvals also use a manager-issued nonce.
-- Loopback-only HTTP service, Origin checking, server-side secrets, and redacted receipts.
-- SSE dashboard timeline and durable `.jsonl` run history.
-
-## Safety model
-
-WinYOLO is an automation harness, not a sandbox.
-
-The policy engine recognizes common destructive syntax, extracts explicit Windows paths, canonicalizes them, and asks for confirmation when a recognized action targets `Windows`, `Program Files`, `Program Files (x86)`, `ProgramData`, boot, or recovery roots. Destructive commands with unresolved targets also require confirmation. UNC/device namespaces and WSL requests are blocked in v1.
-
-Raw PowerShell can obscure intent through variables, child processes, encoded commands, .NET calls, reparse points, and many other mechanisms. The confirmation system is therefore an auditable checkpoint, not a security guarantee. Run WinYOLO unelevated and review its receipts.
-
-## HTTP API
-
-| Method | Path | Purpose |
-|---|---|---|
-| `GET` | `/health` | Runtime status |
-| `GET` | `/api/runs` | In-memory run history |
-| `POST` | `/api/runs` | Start `{task, provider, cwd?}` |
-| `GET` | `/api/runs/:id` | Run state and events |
-| `GET` | `/api/runs/:id/events` | Server-sent event stream |
-| `POST` | `/api/runs/:id/approvals/:approvalId` | Approve or reject a pending action |
-| `GET` | `/api/tools` | Canonical tool schemas |
-| `POST` | `/api/tools/execute` | Direct tool execution through the canonical run/approval path |
-| `POST` | `/mcp` | Streamable HTTP MCP transport |
-
-## Codex plugin
-
-The repository contains a local Codex marketplace and plugin at `plugins/winyolo`. The plugin connects to the running service at `http://127.0.0.1:4747/mcp`; it does not create a second execution path.
-
-```powershell
-codex plugin marketplace add .
-codex plugin add winyolo@winyolo-local
-codex login
-```
-
-Start a new Codex thread after installation, then ask: `Use WinYOLO to inspect my Windows developer environment.`
-
-`codex login` is an operator prerequisite for the Codex planner path. Alternatively, set `OPENAI_API_KEY` for the primary GPT-5.6 Responses API path. WinYOLO reports either missing credential explicitly; it never copies authentication between machines.
-
-The plugin deliberately cannot auto-confirm a dangerous action. Open the dashboard to review those actions locally.
-High-risk MCP calls remain pending while the dashboard displays the bound call. The MCP-only `win_confirm` control tool can release or reject that pending call using its run ID, approval ID, and exact locally displayed phrase; it cannot accept replacement command arguments.
+The Bun server binds to `127.0.0.1` and rejects hostile Origins. Codex’s official thread store remains transcript authority. New 0.3 endpoints cover isolation runs, event streams, interruption, accept/rollback, checkpoints, and Windows capabilities.
 
 ## Verification
 
 ```powershell
 bun run check
-powershell -ExecutionPolicy Bypass -File scripts\smoke-windows.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\smoke-windows.ps1
 ```
 
-The smoke suite starts WinYOLO on a temporary port, verifies loopback health and hostile-Origin rejection, performs native inspection, and confirms the protected-root fixture stops before execution.
-
-An always-on Linux relay can deploy and verify the project when the Windows PC wakes:
-
-```sh
-WINYOLO_WINDOWS_HOST=windows-host-or-ip \
-WINYOLO_WINDOWS_USER=windows-ssh-user \
-bun run deploy:windows --wait
-```
-
-The relay uses native Windows OpenSSH only for transport. WinYOLO itself and its smoke suite execute on the PC with Bun, PowerShell, and cmd—never WSL.
-
-## Configuration
-
-| Variable | Default | Meaning |
-|---|---|---|
-| `OPENAI_API_KEY` | none | Primary provider credential |
-| `WINYOLO_MODEL` | `gpt-5.6` | Responses API model |
-| `WINYOLO_PROVIDER` | `openai` | `openai` or `codex` |
-| `WINYOLO_HOST` | `127.0.0.1` | Loopback host; non-loopback is refused |
-| `WINYOLO_PORT` | `4747` | Local dashboard/API port |
-| `WINYOLO_MAX_STEPS` | `20` | Maximum model tool calls |
-| `WINYOLO_COMMAND_TIMEOUT_MS` | `120000` | Command timeout ceiling |
-| `WINYOLO_MAX_OUTPUT_BYTES` | `200000` | Captured stdout/stderr limit |
-| `WINYOLO_DATA_DIR` | `%LOCALAPPDATA%\WinYOLO` | Receipts and runtime data |
-
-## Project status
-
-WinYOLO is a Build Week MVP. See [ARCHITECTURE.md](docs/ARCHITECTURE.md), [DEMO.md](docs/DEMO.md), [SUBMISSION.md](docs/SUBMISSION.md), and [SECURITY.md](SECURITY.md).
+See `WINDOWS-FULL-IMPLEMENTATION-STEPS.txt` for installation, Chrome acceptance, demo recording, rollback, and recovery.

@@ -1,39 +1,21 @@
-# Build Week submission checklist
+# WinYOLO 0.3 submission
 
-## Category
+Category: Developer Tools.
 
-Developer Tools
+WinYOLO preserves the official Codex terminal and conversation store while adding Windows-native Safe/YOLO policies, a loopback browser companion, structured Windows developer tools, schema-2 receipts, and restricted-account Git-backed isolation with Accept/Rollback.
 
-## One-line description
+Claims are bounded:
 
-WinYOLO is a transparent Windows-native automation control plane that lets GPT‑5.6 and Codex operate PowerShell, files, and processes with live receipts and destructive-action checkpoints—without WSL.
+- Safe is workspace-write/on-request with command networking denied.
+- YOLO is approval-free but retains the workspace, network, and secret boundaries.
+- Isolated uses `WinYOLORunner`, `CreateProcessWithLogonW`, a kill-on-close Job Object, sanitized environment, dedicated file-backed runner authentication, and a self-contained disposable Git clone.
+- Production and smoke paths contain no Linux compatibility transport; the optional comparison command is explicitly confirmed and quarantined.
+- Codex remains transcript authority; WinYOLO does not parse private transcript JSONL.
 
-## Problem and impact
+Verified release evidence on Windows: `bun run check` completed with 66 tests and zero failures; plugin validation, `SOURCE_SCAN_OK`, `WINYOLO_WINDOWS_SMOKE_OK`, and doctor capability readiness passed.
 
-AI developer agents can execute powerful local commands, but Windows operators lack a compact, replayable explanation of what ran and why. WinYOLO makes native automation inspectable and gives developers one local control plane across API, CLI, dashboard, MCP, and Codex plugin surfaces.
+Accepted isolation proof: run `8d6c8af1-d36d-419f-93c1-204d4423a3e7` completed with exit code 0. Checkpoint `cp-8d6c8af1-d36d-419f-93c1-204d4423a3e7` created only `isolated-proof.txt` containing `OK`, was accepted, and recorded diff hash `29481c089cdba26c5fc66bc4eb5f67fc183dbc334ec085a7574a392b7f2b8aad`.
 
-## Technical implementation highlights
+Accepted BrokenBuild demo: the initial test failed with Expected 5 / Actual -1; isolated run `b5642ba1-db72-49d9-b617-966a33cc9951` made the deliberately wrong multiplication repair and was rolled back. Correct run `cb89623d-ccd0-411f-a6f2-8c835f62f4b8` produced a reviewed one-file repair, checkpoint `cp-cb89623d-ccd0-411f-a6f2-8c835f62f4b8` was accepted with diff hash `4914321258ec634c95f98719386d93721eb99f02098173690b4c74f481e6aafa`, and final verification printed `BROKEN_BUILD_TESTS_PASS`.
 
-- GPT‑5.6 Responses API function calling with strict schemas and preserved call IDs.
-- Native Windows PowerShell/cmd execution, bounded process lifetime, and output limits.
-- Action-bound confirmations and append-only redacted receipts.
-- Localhost SSE dashboard and Streamable HTTP MCP integration.
-- Codex CLI structured-planning adapter behind the same authority.
-
-## Materials
-
-- [ ] Public repository URL and MIT license
-- [ ] README setup instructions verified from a fresh Windows checkout
-- [ ] Public YouTube demo under three minutes
-- [x] Project description and Developer Tools category
-- [ ] `/feedback` Codex session ID for the core build session
-- [x] Notes explaining where Codex accelerated implementation and key human decisions
-- [x] Test instructions that do not require rebuilding a hosted service
-- [x] [Final Windows smoke receipt](evidence/windows-smoke-2026-07-20.md)
-
-## Human decisions to highlight
-
-1. Reframed the idea after verifying Codex already runs natively on Windows.
-2. Kept raw PowerShell YOLO mode but described classification honestly as advisory.
-3. Centralized authority so dashboard, API, MCP, and plugin cannot silently diverge.
-4. Made the dangerous demo deterministic and non-destructive.
+Do not claim Interceptor Chrome acceptance; the required Interceptor CLI was unavailable on the verification machine.

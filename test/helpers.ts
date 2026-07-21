@@ -16,6 +16,12 @@ export function testConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     maxOutputBytes: 4_096,
     dataDir,
     defaultCwd: dataDir,
+    codexRequestTimeoutMs: 2_000,
+    codexRestartLimit: 2,
+    codexEventBufferSize: 100,
+    runnerUsername: "WinYOLORunner",
+    runnerCredentialPath: join(dataDir, "protected", "runner.dpapi"),
+    isolatedTimeoutMs: 10_000,
     ...overrides,
   };
 }

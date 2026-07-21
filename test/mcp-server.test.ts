@@ -51,13 +51,7 @@ describe("MCP confirmation authority", () => {
     await client.connect(clientTransport);
 
     const listed = await client.listTools();
-    expect(listed.tools.map((tool) => tool.name)).toEqual([
-      "win_system_inspect",
-      "win_shell",
-      "win_filesystem",
-      "win_process",
-      "win_confirm",
-    ]);
+    expect(listed.tools.map((tool) => tool.name)).toEqual([...TOOL_DEFINITIONS.map((tool) => tool.name), "win_confirm"]);
     expect(TOOL_DEFINITIONS.map((tool) => tool.name)).not.toContain("win_confirm");
   });
 

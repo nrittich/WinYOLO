@@ -29,11 +29,26 @@ describe("localhost server", () => {
     expect(response.status).toBe(403);
   });
 
+  test("protects and serves isolation, checkpoint, and capability endpoints", async () => {
+    const config = testConfig({ port: 0 });
+    const run = { id: "isolated-1", task: "fix build", sourceCwd: config.defaultCwd, status: "completed", checkpointId: "cp-1", processId: 12, createdAt: "now", updatedAt: "now", events: [] };
+    const isolation = { hydrate: async () => {}, checkpoints: { list: async () => [{ id: "cp-1", finalDiffHash: "abc" }] }, start: async () => run, get: (id: string) => id === run.id ? run : undefined, subscribe: () => () => {}, interrupt: async () => true, accept: async () => ({ ...run, status: "accepted" }), rollback: async () => ({ ...run, status: "rolled_back" }) } as any;
+    const server = createServer(config, undefined, undefined, isolation); servers.push(server); const base = `http://127.0.0.1:${server.port}`;
+    expect((await fetch(`${base}/api/windows/capabilities`)).status).toBe(200);
+    expect((await fetch(`${base}/api/checkpoints`)).status).toBe(200);
+    const created = await fetch(`${base}/api/isolation/runs`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ task: "fix build" }) });
+    expect(created.status).toBe(202); expect((await created.json() as any).run.id).toBe("isolated-1");
+    expect((await fetch(`${base}/api/isolation/runs/isolated-1`)).status).toBe(200);
+    expect((await fetch(`${base}/api/isolation/runs/isolated-1/accept`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })).status).toBe(200);
+    expect((await fetch(`${base}/api/isolation/runs`, { method: "POST", headers: { Origin: "https://evil.example", "Content-Type": "application/json" }, body: JSON.stringify({ task: "escape" }) })).status).toBe(403);
+  });
+
   test("lists canonical tools", async () => {
     const server = createServer(testConfig({ port: 0 }));
     servers.push(server);
     const body = await (await fetch(`http://127.0.0.1:${server.port}/api/tools`)).json() as any;
-    expect(body.tools.map((tool: any) => tool.name)).toEqual(["win_system_inspect", "win_shell", "win_filesystem", "win_process"]);
+    expect(body.tools.map((tool: any) => tool.name)).toContain("win_acl");
+    expect(body.tools).toHaveLength(13);
   });
 
   test("creates one active run, rejects concurrency, and streams events", async () => {

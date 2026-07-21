@@ -4,39 +4,70 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="dark">
-    <title>WinYOLO — Windows execution, made visible</title>
+    <title>WinYOLO — Codex companion</title>
     <link rel="stylesheet" href="/app.css">
   </head>
   <body>
-    <header>
-      <div class="brand"><span class="mark">WY</span><div><strong>WinYOLO</strong><small>Windows execution, made visible</small></div></div>
-      <div id="health" class="pill muted">checking service</div>
-    </header>
-    <main>
-      <section class="hero">
-        <p class="eyebrow">GPT-5.6 × native PowerShell</p>
-        <h1>Move fast. See everything.</h1>
-        <p class="lede">An auditable Windows automation control plane with live commands, risk explanations, and replayable receipts.</p>
-        <form id="run-form">
-          <textarea id="task" required placeholder="Inspect this PC's developer setup, find anything broken, and recommend the next action."></textarea>
-          <div class="form-row">
-            <select id="provider" aria-label="Provider"><option value="openai">GPT-5.6 API</option><option value="codex">Codex CLI</option></select>
-            <input id="cwd" placeholder="Working directory (optional)">
-            <button type="submit">Run on Windows <span>→</span></button>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand"><span class="mark">WY</span><div><strong>WinYOLO</strong><small>Native Codex companion</small></div></div>
+        <button id="new-thread" class="new-thread">＋ New conversation</button>
+        <label class="search"><span>⌕</span><input id="thread-search" type="search" placeholder="Search conversations"></label>
+        <div class="sidebar-filter"><button id="active-filter" class="active">Active</button><button id="archived-filter">Archived</button></div>
+        <nav id="thread-list" aria-label="Conversations"><div class="sidebar-empty">Loading Codex history…</div></nav>
+        <div class="sidebar-bottom">
+          <button id="conversations-tab" class="nav-tab active">Conversations</button>
+          <button id="audit-tab" class="nav-tab">Audit receipts</button>
+          <div id="health" class="health">Checking service…</div>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div class="thread-heading"><h1 id="thread-title">New conversation</h1><div id="thread-meta">Official Codex session store</div></div>
+          <div class="top-actions">
+            <div id="mode-indicator" class="yolo-indicator safe"><span></span>SAFE · WORKSPACE</div>
+            <button id="resume-terminal" class="secondary" disabled>Resume in terminal</button>
+            <button id="archive-thread" class="secondary" disabled>Archive</button>
           </div>
-        </form>
-      </section>
-      <section class="run-head">
-        <div><p class="eyebrow">Execution receipt</p><h2 id="run-title">No active run</h2></div>
-        <div id="run-status" class="status idle">idle</div>
-      </section>
-      <section id="approval" class="approval hidden">
-        <div><p class="eyebrow danger">High-risk checkpoint</p><h3>Local confirmation required</h3><p id="approval-reasons"></p><code id="approval-command"></code></div>
-        <div class="approval-actions"><input id="confirmation" autocomplete="off"><button id="approve">Confirm exact action</button><button id="reject" class="ghost">Reject</button></div>
-      </section>
-      <section id="timeline" class="timeline"><div class="empty">Run a task to create a live Windows execution receipt.</div></section>
-    </main>
-    <footer><span>Localhost only</span><span>Raw PowerShell is powerful; risk detection is advisory.</span></footer>
+        </header>
+
+        <section id="conversation-view" class="conversation-view">
+          <div id="transcript" class="transcript">
+            <div class="welcome"><div class="welcome-mark">WY</div><h2>Native Codex, wherever you are.</h2><p>Terminal and browser conversations share one official history. Start here or run <code>winyolo</code> for the full TUI.</p></div>
+          </div>
+
+          <section id="approval-card" class="approval-card hidden">
+            <div><span class="approval-label">Safe mode approval</span><strong id="approval-title">Codex requests permission</strong><pre id="approval-detail"></pre></div>
+            <div class="approval-actions"><button id="approval-reject" class="secondary">Reject</button><button id="approval-accept">Approve once</button></div>
+          </section>
+
+          <section id="isolation-card" class="approval-card hidden">
+            <div><span class="approval-label">Restricted Windows account</span><strong id="isolation-title">Isolated run</strong><pre id="isolation-output"></pre><pre id="isolation-diff"></pre></div>
+            <div class="approval-actions"><button id="isolation-rollback" class="secondary">Rollback</button><button id="isolation-accept">Accept patch</button></div>
+          </section>
+
+          <div class="composer-wrap">
+            <form id="composer" class="composer">
+              <textarea id="message" rows="1" placeholder="Message Codex"></textarea>
+              <div class="composer-tools">
+                <label class="image-input">＋ Image paths<input id="images" placeholder="C:\path\image.png, …"></label>
+                <div class="mode-switch" role="group" aria-label="Permission mode"><button type="button" data-mode="safe" class="selected">Safe</button><button type="button" data-mode="yolo">YOLO</button><button type="button" data-mode="isolated">Isolated</button></div>
+                <button id="stop-turn" type="button" class="stop hidden">■ Stop</button>
+                <button id="send" type="submit" class="send" aria-label="Send">↑</button>
+              </div>
+            </form>
+            <p id="mode-note" class="composer-note">Safe uses workspace-write, on-request approvals, and denied command networking.</p>
+          </div>
+        </section>
+
+        <section id="audit-view" class="audit-view hidden">
+          <div class="audit-head"><div><span class="eyebrow">Secondary view</span><h2>Execution audit</h2><p>WinYOLO receipts remain separate from Codex transcripts.</p></div><button id="refresh-audit" class="secondary">Refresh</button></div>
+          <div id="audit-list" class="audit-list"></div>
+        </section>
+      </main>
+    </div>
+    <div id="toast" class="toast hidden"></div>
     <script src="/app.js" defer></script>
   </body>
 </html>

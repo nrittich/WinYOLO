@@ -1,0 +1,542 @@
+WINYOLO 0.3 — FULL WINDOWS INSTALLATION AND ACCEPTANCE
+======================================================
+
+TARGET
+Windows 10 Home build 19045 or later. Production execution is Windows-native.
+
+1. FULL INSTALL — ONE UAC PROMPT
+--------------------------------
+Open a normal PowerShell in the WinYOLO project directory and run exactly:
+
+Set-ExecutionPolicy -Scope Process Bypass -Force
+& .\scripts\install.ps1 -Full
+
+Accept the single UAC prompt. The elevated continuation installs/updates Bun,
+Codex, Git, .NET 8 SDK, Visual Studio Build Tools/MSBuild, and Windows SDK;
+installs WinYOLO and its plugin; creates/reuses WinYOLORunner; stores a new
+runner password encrypted with Windows DPAPI; and applies protected ACLs.
+
+Run the same two commands a second time. The second installation must exit 0.
+
+2. CODEX LOGIN AND HOOK TRUST
+-----------------------------
+codex login
+winyolo
+
+Inside the Codex TUI enter:
+
+/hooks
+
+Review and trust exactly these WinYOLO plugin hook groups:
+SessionStart, PreToolUse, PermissionRequest, PostToolUse, Stop.
+Changed hook hashes require review again. Never use a hook-trust bypass for
+normal WinYOLO operation.
+
+3. DOCTOR AND ISOLATED RUNNER VERIFICATION
+------------------------------------------
+winyolo doctor
+bun run check
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\smoke-windows.ps1
+
+Confirm doctor reports Windows, native sandbox/profile readiness,
+WinYOLORunner, Job Object broker, trusted hooks, Git, .NET, MSBuild, NuGet,
+WinGet, Windows SDK, Codex login, loopback companion health, and zero Linux
+compatibility-layer policy.
+
+From a Git repository with an initial commit:
+
+A Git repository is a project folder containing a hidden `.git` directory and
+at least one saved commit. If the terminal prompt shows `git:(main)`, as the
+WinYOLO project does, the current folder already qualifies.
+
+winyolo isolated "Create isolated-proof.txt containing only OK" --cwd .
+winyolo checkpoint list
+winyolo checkpoint diff cp-REPLACE-WITH-ID
+
+Verify the run receipt names WinYOLORunner, the source tree has not changed,
+the worktree is under %LOCALAPPDATA%\WinYOLO\workspaces, and the process tree
+dies after Interrupt. Attempt reads of the installing user profile, .ssh, .aws,
+Codex auth, project .env, and protected\runner.dpapi; every attempt must fail
+and create a receipt. Attempt an unapproved external HTTPS request; it must fail.
+
+4. REAL CHROME ACCEPTANCE — INTERCEPTOR
+---------------------------------------
+winyolo serve
+
+In real Chrome with the Interceptor extension:
+
+interceptor open "http://127.0.0.1:4747"
+interceptor inspect
+interceptor screenshot --save
+
+Verify, in order:
+1) searchable history loads from official Codex threads;
+2) transcript metadata shows time, cwd, source, status, archive state;
+3) local images render and can be submitted;
+4) Resume in terminal copies: winyolo resume <thread-id>;
+5) archive/unarchive updates native state;
+6) Safe streaming survives refresh and asks for approval;
+7) interruption stops the active turn;
+8) Audit remains a separate receipt view;
+9) YOLO indicator says constrained/workspace, never full access;
+10) Isolated streams output and shows checkpoint/diff;
+11) refresh recovers the isolated run;
+12) Rollback exports a patch and removes the worktree;
+13) Accept applies only the isolated delta.
+
+Run `interceptor net log --json`. There must be no failed JS/CSS assets, raw
+app-server stdio, credential data, or non-loopback API origin.
+
+5. OPTIONAL COMPARISON BENCHMARK — WARNING
+------------------------------------------
+This command is optional, comparison-only, machine-specific, and outside every
+production/smoke workflow. It may start the Linux compatibility layer:
+
+winyolo benchmark wsl --confirm BENCHMARK-ONLY
+
+Never generalize its timing or resource results. Store the raw JSON evidence.
+
+6. DEMO RECORDING SCRIPT
+------------------------
+bun run demo:reset
+bun run demo:verify
+
+The first verification must fail.
+
+winyolo isolated "Fix the failing Calculator test. Run dotnet test and make the smallest correct change." --cwd .\demo\BrokenBuild
+
+In Chrome show streaming, checkpoint, diff, and receipt. Record one deliberately
+wrong isolated attempt and click Rollback. Run the correct repair and click
+Accept patch. Then run:
+
+bun run demo:verify
+
+The final line must be BROKEN_BUILD_TESTS_PASS.
+
+7. ROLLBACK PROCEDURE
+---------------------
+winyolo checkpoint diff cp-REPLACE-WITH-ID
+winyolo checkpoint rollback cp-REPLACE-WITH-ID
+
+Rollback always retains:
+%LOCALAPPDATA%\WinYOLO\workspaces\<run-id>\result.patch
+
+Accept instead:
+winyolo checkpoint accept cp-REPLACE-WITH-ID
+
+Accept refuses if the source repository changed after checkpoint creation.
+Reconcile current changes, inspect the exported patch, and retry deliberately.
+
+8. RECOVERY COMMANDS
+--------------------
+Current shell cannot find WinYOLO:
+$env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User')
+.\winyolo.cmd doctor
+
+Companion unavailable:
+winyolo serve
+Invoke-RestMethod http://127.0.0.1:4747/health
+
+Stale worktree after crash:
+git worktree list
+git worktree prune
+winyolo checkpoint list
+winyolo checkpoint diff cp-REPLACE-WITH-ID
+winyolo checkpoint rollback cp-REPLACE-WITH-ID
+
+Runner damaged or credential unreadable:
+& .\scripts\install.ps1 -Full
+winyolo doctor
+
+Plugin hooks changed:
+winyolo
+/hooks
+
+Review and trust the current hashes again.
+
+8. CURRENT PC UPDATE LOG — 2026-07-21
+--------------------------------------
+The PC was updated through the homelab relay to the current WinYOLO 0.3
+launcher and source tree. The old launcher forwarded `isolated` and
+`checkpoint` directly to Codex; the current launcher owns those commands.
+macOS `._*` metadata files were removed from the Windows project after
+deployment, and the Windows suite completed with 61 passing tests.
+
+Before the first real isolated job, run the full installer once so the
+restricted WinYOLORunner account, machine-scope DPAPI credential, protected
+folders, and native Job Object broker are configured:
+
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Full
+
+Then verify the current command surface:
+
+winyolo doctor
+winyolo checkpoint list
+winyolo isolated "Create isolated-proof.txt containing only OK" --cwd .
+winyolo checkpoint list
+
+If `winyolo` resolves to an older command, refresh the current shell PATH and
+use the project launcher directly:
+
+$env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User')
+.\winyolo.cmd checkpoint list
+
+The current launcher rejects unrestricted bypass flags. Do not replace it with
+an older `winyolo.cmd` that forwards every argument directly to Codex.
+
+9. CURRENT PC UPDATE LOG — CHECKPOINT FIX — 2026-07-21
+-------------------------------------------------------
+If `bun run check` reports `Mac AppleDouble metadata files were deployed`,
+remove only those generated files and retry:
+
+Get-ChildItem -Recurse -Force -File | Where-Object { $_.Name -like '._*' } | Remove-Item -Force
+bun run check
+
+The checkpoint fixture is now Windows-compatible with Git line-ending
+settings. It directly preserves dirty tracked files and synchronizes newly
+created isolated files during Accept. The targeted verification is:
+
+$env:Path = 'C:\Program Files\Git\cmd;C:\Program Files\Git\bin;' + $env:Path
+bun test ./test/checkpoints.test.ts
+
+Expected result: `2 pass, 0 fail`.
+
+10. CURRENT PC UPDATE LOG — FINAL CHECK — 2026-07-21
+-----------------------------------------------------
+The Windows project now passes the complete check command with Git available:
+
+`61 pass, 0 fail, 217 expect() calls`
+
+The installer now persists the standard Git paths for future PowerShell
+sessions. Close and reopen PowerShell after installation, then run:
+
+cd C:\Users\NickT\AI\Project\WinYOLO
+bun run check
+
+If the current shell still has the old PATH, refresh it once:
+
+$env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User')
+bun run check
+
+The native smoke suite also completed successfully after installing the .NET
+8 SDK through WinGet. Final marker:
+
+WINYOLO_WINDOWS_SMOKE_OK
+
+11. CURRENT PC UPDATE LOG — ISOLATION PRECHECK — 2026-07-21
+----------------------------------------------------------
+Checkpoint preparation now excludes AppleDouble paths such as the malformed
+`._.` entry, and failed preparation automatically removes its disposable
+worktree and checkpoint branch. Two older failed worktrees were cleaned after
+their recovery patches were exported under:
+
+C:\Users\NickT\AppData\Local\WinYOLO\workspaces\<failed-run-id>\failed-prepare.patch
+
+The current PC does not yet have WinYOLORunner or its DPAPI credential. Run
+this command from the WinYOLO project and approve the UAC prompt:
+
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Full
+
+After it completes:
+
+winyolo doctor
+winyolo isolated "Create isolated-proof.txt containing only OK" --cwd .
+winyolo checkpoint list
+
+When the list prints an ID such as `cp-1234`, replace the example with the real
+ID. Do not type angle brackets in PowerShell:
+
+winyolo checkpoint diff cp-1234
+
+`winyolo checkpoint diff <checkpoint-id>` is documentation notation only;
+PowerShell interprets `<` as an operator.
+
+12. CURRENT PC UPDATE LOG — FULL INSTALL COMPLETE — 2026-07-21
+-------------------------------------------------------------
+The full installer was corrected to treat WinGet's `no upgrade available`
+result as success, pass the Visual Studio Build Tools override correctly, load
+the Windows PowerShell DPAPI assembly, and keep launcher tests independent of
+the installed shared Codex executable.
+
+Verified on this PC:
+
+WinYOLORunner account: present
+DPAPI runner credential: present
+Codex permission profiles: present
+Full installer tests: 61 pass, 0 fail
+Plugin: PLUGIN_VALID winyolo@0.3.0
+
+Visual Studio Build Tools requested one PC restart to finish machine-wide
+installation. Restart Windows before final MSBuild/SDK acceptance.
+
+For the isolated proof, keep the companion open in one PowerShell window:
+
+cd C:\Users\NickT\AI\Project\WinYOLO
+winyolo serve
+
+Open a second PowerShell window in the same project and run:
+
+winyolo isolated "Create isolated-proof.txt containing only OK" --cwd .
+winyolo checkpoint list
+
+Copy the real `cp-...` ID from the list, then run it without angle brackets:
+
+winyolo checkpoint diff cp-REPLACE-WITH-ID
+
+The smoke script ignores only an unresolvable phantom `._.` directory entry
+left by the earlier tar extraction; real readable `._*` files remain a hard
+failure.
+
+13. CURRENT PC UPDATE LOG — NATIVE BROKER CORRECTION — 2026-07-21
+-----------------------------------------------------------------
+What "from a Git repository" means:
+
+A Git repository is simply a project folder that contains Git history in a
+hidden `.git` directory and has at least one saved commit. This WinYOLO folder
+already qualifies. The `git:(main)` text in the PowerShell prompt confirms
+that C:\Users\NickT\AI\Project\WinYOLO is a Git repository on branch `main`.
+You do not need to create another repository or change directories.
+
+The native broker was corrected to use Bun's documented Windows HANDLE type,
+pass typed memory buffers correctly, provide all three valid standard handles,
+load the restricted runner profile, and create the runner temp directories.
+The full installer now also copies Codex's native sidecar executable and grants
+WinYOLORunner non-inherited traversal of the WinYOLO data root while continuing
+to deny the protected DPAPI credential directory. Doctor now recognizes the
+zero-length Windows App Execution Alias used by WinGet instead of reporting a
+false missing result.
+
+The remote SSH acceptance session can create the restricted process and return
+a real PID, but Windows terminates alternate-credential programs in that
+non-interactive SSH window station with status 0xC0000142. The same result was
+reproduced with Windows Start-Process and cmd.exe, proving it is not a Codex
+error. Perform the final acceptance from the normal Windows Terminal shown in
+the screenshots.
+
+Restart Windows first because Visual Studio Build Tools requested a restart.
+Then open PowerShell normally and run:
+
+cd C:\Users\NickT\AI\Project\WinYOLO
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Full
+
+Approve the single UAC prompt. This rerun is idempotent and installs the latest
+broker ACL and Codex sidecar changes.
+
+In the first normal PowerShell window, keep the companion running:
+
+cd C:\Users\NickT\AI\Project\WinYOLO
+winyolo serve
+
+In a second normal PowerShell window, run:
+
+cd C:\Users\NickT\AI\Project\WinYOLO
+winyolo isolated "Create isolated-proof.txt containing only OK" --cwd .
+winyolo checkpoint list
+
+The list prints a real ID beginning with `cp-`. Copy that whole ID. For example,
+if it prints `cp-1234`, run:
+
+winyolo checkpoint diff cp-1234
+
+Do not type `<checkpoint-id>` or the angle brackets. After inspecting the diff,
+choose exactly one command with the same real ID:
+
+winyolo checkpoint accept cp-1234
+winyolo checkpoint rollback cp-1234
+
+Use Accept to apply `isolated-proof.txt` to the main WinYOLO folder. Use
+Rollback to discard it while retaining the exported recovery patch.
+
+14. CURRENT PC UPDATE LOG — CHECKPOINT DIFF PATH FIX — 2026-07-21
+----------------------------------------------------------------
+The screenshot command used a valid checkpoint ID:
+
+winyolo checkpoint diff cp-5d9511d4-2447-473e-80ed-11699d953041
+
+Its `ENOENT ... uv_spawn 'git'` error meant the already-installed Git program
+was not visible in that PowerShell window's stale PATH. WinYOLO now resolves
+Git directly from its standard Windows installation directory when PATH is
+stale. Diff also reads the retained `result.patch` after a checkpoint has been
+accepted or rolled back, because its disposable worktree no longer exists.
+
+Run the same command again exactly as shown above. That checkpoint is already
+marked `rolled_back` and its recorded diff hash is the empty-diff hash, so the
+expected result is:
+
+Checkpoint cp-5d9511d4-2447-473e-80ed-11699d953041 has no changes (status: rolled_back).
+
+For a new isolated run, use the newest `cp-...` entry whose status is
+`prepared`, `running`, or `completed`; do not choose an older `rolled_back`
+entry when you want to inspect new work.
+
+15. RESUME HERE — DO NOT REPEAT THE WHOLE GUIDE — 2026-07-21
+------------------------------------------------------------
+Do not go back through every step. The old checkpoint result is complete and
+expected. Continue from here.
+
+If Windows has not been restarted since Visual Studio Build Tools requested a
+restart, restart the PC now. After signing back in, open a normal PowerShell in
+the WinYOLO project and run the full installer one final time to deploy the
+latest runner ACL, Codex sidecar, and broker updates:
+
+cd C:\Users\NickT\AI\Project\WinYOLO
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Full
+
+Approve the single UAC prompt and wait for the installer to finish.
+
+Open PowerShell window 1 and leave this running:
+
+cd C:\Users\NickT\AI\Project\WinYOLO
+winyolo serve
+
+Open PowerShell window 2 and run:
+
+cd C:\Users\NickT\AI\Project\WinYOLO
+winyolo doctor
+winyolo isolated "Create isolated-proof.txt containing only OK" --cwd .
+
+Open the Companion URL printed by the isolated command, or open:
+
+http://127.0.0.1:4747
+
+Wait until the new isolated run reaches `completed` or `failed`. Then run:
+
+winyolo checkpoint list
+
+Use the newest `cp-...` ID associated with that new run. Do not reuse
+cp-5d9511d4-2447-473e-80ed-11699d953041; it is an old rolled-back checkpoint.
+For example, if the new ID is `cp-NEW-ID`, replace that entire example with the
+real ID and run:
+
+winyolo checkpoint diff cp-NEW-ID
+
+If the diff creates `isolated-proof.txt` containing only `OK`, apply it with:
+
+winyolo checkpoint accept cp-NEW-ID
+
+If the run failed or the diff is wrong, discard it with:
+
+winyolo checkpoint rollback cp-NEW-ID
+
+After Accept, verify the proof file:
+
+Get-Content .\isolated-proof.txt
+
+Expected output:
+
+OK
+
+16. CURRENT PC UPDATE LOG — FAILED ISOLATED RUN — 2026-07-21
+-----------------------------------------------------------
+The isolated run shown in the browser has this checkpoint ID:
+
+cp-f46032a9-56d0-4795-9f82-3f3f7f7e581b
+
+Do not Accept it. The browser status is `failed`, and Codex rejected the old
+argument order before making the requested file. Click Rollback in the browser,
+or run:
+
+winyolo checkpoint rollback cp-f46032a9-56d0-4795-9f82-3f3f7f7e581b
+
+WinYOLO now places the global `--ask-for-approval never` option before the
+`exec` subcommand, matching the installed native Codex CLI 0.144.6 interface.
+
+After the fix is deployed, keep `winyolo serve` running and create a fresh run:
+
+winyolo isolated "Create isolated-proof.txt containing only OK" --cwd .
+
+Open the new Companion URL. Only Accept a new checkpoint when its browser
+status is `completed` and its Diff shows exactly the intended file. Never
+Accept a checkpoint whose status is `failed`.
+
+17. SUBMISSION-DAY STALE SERVER REPLACEMENT — 2026-07-21
+--------------------------------------------------------
+The failed checkpoint from the stale 3:11 PM server was rolled back:
+
+cp-a43b1cfd-0f8f-4835-8a41-d233410dfca7
+
+PID 14920 was stopped. The replacement server started at 3:42:23 PM, after
+the corrected `src\isolation.ts` timestamp of 3:20:09 PM. A fresh run proved
+the corrected receipt command begins:
+
+codex.exe --ask-for-approval never exec
+
+The replacement run and matching checkpoint were:
+
+run:        215525e2-beb3-4dc4-939b-792c48948d12
+checkpoint: cp-215525e2-beb3-4dc4-939b-792c48948d12
+
+Do not Accept that checkpoint. The corrected command reached Codex, but the
+restricted runner profile had no bearer credential and Codex returned HTTP
+401 Unauthorized. The run produced the empty-diff SHA-256 and was rolled back.
+This is a separate authentication-provisioning issue, not the stale argument
+ordering issue. No installer rerun or speculative credential copy was made.
+
+Release-gate evidence from the replacement runtime:
+
+- `bun run check`: 63 pass, 0 fail, 221 expectations.
+- Plugin validation: `PLUGIN_VALID winyolo@0.3.0`.
+- Source scan: `SOURCE_SCAN_OK`.
+- Native smoke: `WINYOLO_WINDOWS_SMOKE_OK`.
+- Doctor: runner, Job Object broker, Git, .NET, MSBuild, WinGet, and Windows
+  SDK ready; Codex login authenticated for the installing user.
+
+Submission claim boundary: do not claim successful isolated execution,
+Accept, or the full isolated BrokenBuild demo until the restricted runner has
+a deliberately designed authentication path and a fresh checkpoint completes
+with the expected diff.
+
+18. RUNNER AUTHENTICATION AND ACCEPTED PROOF — 2026-07-21
+--------------------------------------------------------
+Runner authentication is now explicitly provisioned into a dedicated,
+ACL-protected CODEX_HOME. The isolated checkpoint uses a self-contained
+disposable clone so the runner never needs access to the source repository's
+protected .git metadata. Codex runs inside the WinYOLORunner account and a
+kill-on-close Job Object; Accept/Rollback remains the only source mutation gate.
+
+The successful replacement run was:
+
+run:        8d6c8af1-d36d-419f-93c1-204d4423a3e7
+checkpoint: cp-8d6c8af1-d36d-419f-93c1-204d4423a3e7
+diff hash:  29481c089cdba26c5fc66bc4eb5f67fc183dbc334ec085a7574a392b7f2b8aad
+
+The receipt command begins:
+
+codex.exe --ask-for-approval never exec
+
+The run completed with exit code 0. Its diff created only
+isolated-proof.txt with the line OK. The checkpoint was accepted and the
+on-disk bytes are 4F 4B 0A (OK plus the normal final newline).
+
+Final Windows release evidence:
+
+- bun test: 66 pass, 0 fail, 240 expectations.
+- Plugin validation: PLUGIN_VALID winyolo@0.3.0.
+- Source scan: SOURCE_SCAN_OK.
+- Native smoke: WINYOLO_WINDOWS_SMOKE_OK.
+- Doctor: Codex and runner login authenticated; native broker, runner, Git,
+  .NET, MSBuild, WinGet, and Windows SDK ready.
+
+19. ACCEPTED BROKENBUILD DEMO — 2026-07-21
+------------------------------------------
+The demo was reset and its initial test failed with Expected 5, Actual -1.
+
+The deliberately wrong multiplication repair completed in isolated run
+b5642ba1-db72-49d9-b617-966a33cc9951. Its diff showed left * right and the
+checkpoint was rolled back without changing the source repository.
+
+The correct repair completed and was accepted:
+
+run:        cb89623d-ccd0-411f-a6f2-8c835f62f4b8
+checkpoint: cp-cb89623d-ccd0-411f-a6f2-8c835f62f4b8
+diff hash:  4914321258ec634c95f98719386d93721eb99f02098173690b4c74f481e6aafa
+
+After generated build artifacts were removed from the disposable checkpoint,
+the reviewed diff contained only Calculator.cs changing left - right to
+left + right. Accept applied that one-line repair. Final verification printed:
+
+BROKEN_BUILD_TESTS_PASS
+
+Browser acceptance remains unclaimed because the required Interceptor CLI was
+not installed on the verification Mac. Record the dashboard in Chrome on the
+Windows PC and upload the video before final portal submission.

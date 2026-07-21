@@ -1,6 +1,6 @@
 {
   "name": "winyolo",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "Operate a Windows PC through WinYOLO's visible, auditable native-command control plane.",
   "author": {
     "name": "WinYOLO Contributors"
@@ -9,6 +9,7 @@
   "keywords": ["windows", "powershell", "automation", "developer-tools", "codex"],
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
+  "hooks": "./hooks/hooks.json",
   "interface": {
     "displayName": "WinYOLO",
     "shortDescription": "Visible Windows-native agent execution",

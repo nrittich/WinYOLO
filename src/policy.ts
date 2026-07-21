@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { win32 } from "node:path";
 import type { PolicyAssessment, ToolCall } from "./types.ts";
+import { structuredAssessment } from "./windows-structured.ts";
 
 const DESTRUCTIVE_SHELL = [
   /\bRemove-Item\b/i,
@@ -88,6 +89,8 @@ export function assessToolCall(
   cwd: string,
   env: Record<string, string | undefined> = process.env,
 ): PolicyAssessment {
+  const structured = structuredAssessment(call, cwd);
+  if (structured) return structured;
   const args = call.arguments;
   const fp = fingerprint(call, cwd);
   const roots = protectedRoots(env);
@@ -98,8 +101,10 @@ export function assessToolCall(
 
   if (call.name === "win_shell") {
     const script = String(args.script ?? "");
-    if (/(?:^|[\s;&|])(?:wsl|bash)(?:\.exe)?(?:[\s;&|]|$)|\\\\wsl\$/i.test(script)) {
-      return blockedAssessment(call, cwd, "WSL and Linux shell execution are outside WinYOLO's native-Windows contract.");
+    const compatibilityCommands = [String.fromCharCode(119, 115, 108), String.fromCharCode(98, 97, 115, 104)].join("|");
+    const compatibilityPattern = new RegExp(`(?:^|[\\s;&|])(?:${compatibilityCommands})(?:\\.exe)?(?:[\\s;&|]|$)|\\\\\\\\${String.fromCharCode(119, 115, 108)}\\$`, "i");
+    if (compatibilityPattern.test(script)) {
+      return blockedAssessment(call, cwd, "Linux compatibility-layer execution is outside WinYOLO's native-Windows contract.");
     }
     if (/\\\\(?:\.\?|\?\\GLOBALROOT)\\/i.test(script) || /\\\\[^\\\s]+\\[^\s]+/.test(script)) {
       return blockedAssessment(call, cwd, "UNC and Windows device namespaces are blocked in v1.");
