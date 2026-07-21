@@ -8,7 +8,7 @@ WinYOLO is a Windows-native launcher, isolation runner, and loopback companion f
 winyolo [codex arguments]          Safe Codex TUI (workspace-write, on-request, network denied)
 winyolo safe [codex arguments]     Compatibility alias for Safe
 winyolo yolo [codex arguments]     Approval-free Codex TUI inside workspace-write
-winyolo isolated "<task>"          Restricted-account job in a disposable Git worktree
+winyolo isolated "<task>"          Restricted-account job in a disposable Git clone
 winyolo checkpoint list
 winyolo checkpoint diff <id>
 winyolo checkpoint accept <id>
@@ -30,13 +30,21 @@ Set-ExecutionPolicy -Scope Process Bypass -Force
 
 The script requests UAC once, installs or updates the native toolchain through WinGet, installs Codex and the plugin, creates `WinYOLORunner`, protects its DPAPI credential, and prepares `%LOCALAPPDATA%\WinYOLO`.
 
-After installation, run `codex login`, then open `winyolo`, enter `/hooks`, and trust the five bundled hook definitions.
+After installation, run `codex login`, provision the dedicated runner login with
+`powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -ProvisionRunnerAuth`,
+then open `winyolo`, enter `/hooks`, and trust the five bundled hook definitions.
+
+## How Codex and GPT-5.6 were used
+
+Codex is the product's primary interface and execution engine. WinYOLO launches the official native Codex CLI instead of replacing it, uses Codex app-server for conversation history and browser turns, and runs `codex.exe exec` under the restricted `WinYOLORunner` account for reviewable Accept/Rollback jobs.
+
+GPT-5.6 is WinYOLO's default reasoning model for the OpenAI Responses provider. During development and the recorded demo, it planned Windows-native actions, called strict-schema Windows tools, diagnosed runner authentication and sandbox failures, and produced the isolated one-line BrokenBuild repair that passed the final test. WinYOLO adds the Windows policy, checkpoint, approval, and schema-2 receipt boundaries around those model actions.
 
 ## Isolation and recovery
 
-Isolated mode requires a Git repository with an initial commit. WinYOLO creates `%LOCALAPPDATA%\WinYOLO\workspaces\<run-id>`, copies the current tracked/dirty/untracked state into a checkpoint baseline without changing the source tree, withholds `.env` files, launches native `codex.exe exec` as `WinYOLORunner`, and assigns the process to a kill-on-close Job Object.
+Isolated mode requires a Git repository with an initial commit. WinYOLO creates a self-contained disposable clone under `%LOCALAPPDATA%\WinYOLO\workspaces\<run-id>`, copies the current tracked/dirty/untracked state into a checkpoint baseline without changing the source tree, withholds `.env` files, launches native `codex.exe exec` as `WinYOLORunner`, and assigns the process to a kill-on-close Job Object.
 
-Every rollback exports `result.patch` before deleting the worktree. Accept refuses if the source repository changed since checkpoint creation.
+Every rollback exports `result.patch` before deleting the clone. Accept refuses if the source repository changed since checkpoint creation.
 
 ## Structured Windows tools
 
